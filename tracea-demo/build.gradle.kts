@@ -35,7 +35,8 @@ android {
 }
 
 dependencies {
-    implementation(project(":tracea"))
+    debugImplementation(project(":tracea"))
+    releaseImplementation(project(":tracea-noop"))
     
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
