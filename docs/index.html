@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracea — Android In-App Network Inspector & API Mocking Library</title>
+    <meta name="description" content="Tracea is a lightweight Android library for in-app network debugging and API mocking. Inspect OkHttp/Retrofit HTTP traffic, mock API responses, export HAR files — with zero proxy setup. Modern Chucker & Charles Proxy alternative built with Kotlin & Jetpack Compose.">
+    <meta name="keywords" content="Android network inspector, OkHttp interceptor, API mocking Android, Chucker alternative, Charles Proxy alternative, Android HTTP debugger, Retrofit debugger, HAR export Android, Jetpack Compose, Kotlin, in-app network debugger, Android developer tools">
+    <meta name="author" content="Hari Kulhari">
+
+    <!-- Open Graph / Social Preview -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Tracea — Android In-App Network Inspector & API Mocking">
+    <meta property="og:description" content="Debug Android network calls, mock API responses, and export HAR files — all inside your app. No proxy or SSL setup. Modern Chucker & Charles alternative.">
+    <meta property="og:url" content="https://harikulhari06.github.io/tracea/">
+    <meta property="og:image" content="https://raw.githubusercontent.com/HariKulhari06/tracea/main/screenshot/Screenshot_20260813_093825.png">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Tracea — Android In-App Network Inspector & API Mocking">
+    <meta name="twitter:description" content="Inspect, mock, and debug Android network traffic directly inside your app. No proxy setup required.">
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/HariKulhari06/tracea/main/screenshot/Screenshot_20260813_093825.png">
+
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareSourceCode",
+        "name": "Tracea",
+        "description": "Android in-app network inspector, HTTP debugger and API mocking library. Inspect OkHttp/Retrofit traffic, mock responses, export HAR. Modern Chucker and Charles alternative built with Kotlin and Jetpack Compose.",
+        "url": "https://github.com/HariKulhari06/tracea",
+        "codeRepository": "https://github.com/HariKulhari06/tracea",
+        "programmingLanguage": ["Kotlin"],
+        "runtimePlatform": "Android",
+        "license": "https://opensource.org/licenses/MIT",
+        "author": {
+            "@type": "Person",
+            "name": "Hari Kulhari",
+            "url": "https://github.com/HariKulhari06"
+        },
+        "operatingSystem": "Android",
+        "applicationCategory": "DeveloperApplication"
+    }
+    </script>
+
+    <style>
+        :root {
+            --bg: #0a0c14;
+            --surface: #12141f;
+            --card: #1a1d2e;
+            --border: #2a2d42;
+            --text: #e4e8f7;
+            --muted: #8b92b3;
+            --primary: #7e97ff;
+            --green: #4fd6be;
+            --red: #f07178;
+            --orange: #ffcb6b;
+            --purple: #c792ea;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+        /* Hero */
+        .hero { text-align: center; padding: 80px 24px 60px; max-width: 900px; margin: 0 auto; }
+        .hero img.logo { width: 100px; margin-bottom: 24px; }
+        .hero h1 { font-size: 48px; font-weight: 900; letter-spacing: -1px; margin-bottom: 16px; }
+        .hero h1 span { color: var(--primary); }
+        .hero p.tagline { font-size: 20px; color: var(--muted); max-width: 650px; margin: 0 auto 32px; line-height: 1.5; }
+        .hero-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
+        .hero-badges img { height: 22px; }
+        .cta-group { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+        .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 700; text-decoration: none; transition: all 0.15s; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: #6b84f0; transform: translateY(-1px); }
+        .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* Screenshots */
+        .screenshots { display: flex; gap: 20px; justify-content: center; padding: 40px 24px 60px; max-width: 960px; margin: 0 auto; flex-wrap: wrap; }
+        .screenshots img { width: 280px; border-radius: 16px; box-shadow: 0 16px 48px rgba(0,0,0,0.5); border: 1px solid var(--border); }
+
+        /* Section */
+        section { padding: 60px 24px; max-width: 960px; margin: 0 auto; }
+        section h2 { font-size: 32px; font-weight: 800; text-align: center; margin-bottom: 12px; }
+        section h2 span { color: var(--primary); }
+        section .subtitle { text-align: center; color: var(--muted); font-size: 16px; margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto; }
+
+        /* Feature Grid */
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 28px; }
+        .feature-card .icon { font-size: 28px; margin-bottom: 12px; }
+        .feature-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+        .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.5; }
+
+        /* Comparison Table */
+        .comparison { overflow-x: auto; }
+        .comparison table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .comparison th { background: var(--card); color: var(--primary); font-weight: 700; padding: 14px 16px; text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap; }
+        .comparison td { padding: 12px 16px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .comparison tr:hover td { background: rgba(126, 151, 255, 0.04); }
+        .check { color: var(--green); font-weight: 700; }
+        .cross { color: var(--red); }
+        .warn { color: var(--orange); }
+
+        /* Install */
+        .install-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 32px; max-width: 700px; margin: 0 auto; }
+        .install-box h3 { font-size: 16px; font-weight: 700; color: var(--muted); margin-bottom: 16px; }
+        .code { background: #080a10; border: 1px solid var(--border); border-radius: 8px; padding: 18px 20px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13.5px; color: #82aaff; line-height: 1.6; overflow-x: auto; margin-bottom: 16px; }
+        .code .kw { color: var(--purple); font-weight: 700; }
+        .code .str { color: var(--green); }
+        .code .com { color: #5c638a; }
+
+        /* Stats */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; max-width: 700px; margin: 32px auto 0; }
+        .stat { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; text-align: center; }
+        .stat .num { font-size: 32px; font-weight: 900; color: var(--green); font-family: ui-monospace, monospace; }
+        .stat .label { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 600; text-transform: uppercase; }
+
+        /* Footer */
+        footer { text-align: center; padding: 48px 24px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); margin-top: 40px; }
+        footer a { color: var(--primary); text-decoration: none; }
+
+        @media (max-width: 640px) {
+            .hero h1 { font-size: 32px; }
+            .hero p.tagline { font-size: 16px; }
+            .screenshots img { width: 240px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero -->
+    <div class="hero">
+        <img src="https://raw.githubusercontent.com/HariKulhari06/tracea/main/logo.png" alt="Tracea Logo" class="logo">
+        <h1><span>Tracea</span></h1>
+        <p class="tagline">Android in-app network inspector, HTTP debugger & API mocking library. Zero proxy setup. Built with Kotlin & Jetpack Compose.</p>
+        <div class="hero-badges">
+            <img src="https://jitpack.io/v/HariKulhari06/tracea.svg" alt="JitPack Version">
+            <img src="https://img.shields.io/badge/Platform-Android-green.svg" alt="Android">
+            <img src="https://img.shields.io/badge/Kotlin-2.1.20-purple.svg" alt="Kotlin">
+            <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="MIT License">
+        </div>
+        <div class="cta-group">
+            <a href="https://github.com/HariKulhari06/tracea" class="btn btn-primary">⭐ View on GitHub</a>
+            <a href="#install" class="btn btn-outline">📦 Get Started</a>
+        </div>
+    </div>
+
+    <!-- Screenshots -->
+    <div class="screenshots">
+        <img src="https://raw.githubusercontent.com/HariKulhari06/tracea/main/screenshot/Screenshot_20260813_093825.png" alt="Android Network Inspector - Request List">
+        <img src="https://raw.githubusercontent.com/HariKulhari06/tracea/main/screenshot/Screenshot_20260813_093838.png" alt="HTTP Request Response Details">
+        <img src="https://raw.githubusercontent.com/HariKulhari06/tracea/main/screenshot/Screenshot_20260813_093900.png" alt="API Mock Rules Engine">
+    </div>
+
+    <!-- Features -->
+    <section>
+        <h2>Why <span>Tracea</span>?</h2>
+        <p class="subtitle">Everything you need to debug and mock Android network traffic — directly inside your app.</p>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="icon">🔍</div>
+                <h3>Real-Time HTTP Inspection</h3>
+                <p>Monitor all OkHttp & Retrofit calls with status badges, headers, formatted JSON bodies, and query parameters.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🎭</div>
+                <h3>Client-Side API Mocking</h3>
+                <p>Force 401s, 500s, empty states, and slow timeouts. Test edge cases without touching backend code.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📉</div>
+                <h3>Timing Waterfall</h3>
+                <p>DNS lookup, TCP connect, TLS handshake, TTFB, and download — Chrome DevTools style breakdown.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🔒</div>
+                <h3>Auto Redaction</h3>
+                <p>Masks Authorization, Cookie, password, token, and secret fields recursively in headers and JSON bodies.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📋</div>
+                <h3>1-Click Export</h3>
+                <p>Copy cURL commands, export single-request or full-session HAR files for Postman and Chrome DevTools.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🔌</div>
+                <h3>Floating Debug Overlay</h3>
+                <p>Draggable badge with live request counter. Tap once to open the inspector from any screen.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison -->
+    <section>
+        <h2>Tracea vs <span>Alternatives</span></h2>
+        <p class="subtitle">How Tracea compares to Chucker, Charles Proxy, Stetho, and Flipper.</p>
+
+        <div class="comparison">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Tracea</th>
+                        <th>Chucker</th>
+                        <th>Charles</th>
+                        <th>Stetho</th>
+                        <th>Flipper</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>In-app UI (no external tool)</td><td class="check">✅</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+                    <tr><td>Zero proxy / SSL setup</td><td class="check">✅</td><td class="check">✅</td><td class="cross">❌</td><td class="check">✅</td><td class="check">✅</td></tr>
+                    <tr><td>Client-side API mocking</td><td class="check">✅</td><td class="cross">❌</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+                    <tr><td>HAR file export</td><td class="check">✅</td><td class="cross">❌</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+                    <tr><td>Timing waterfall</td><td class="check">✅</td><td class="cross">❌</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+                    <tr><td>Auto token/password redaction</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+                    <tr><td>Web inspector (browser)</td><td class="check">✅</td><td class="cross">❌</td><td class="cross">❌</td><td class="check">✅</td><td class="cross">❌</td></tr>
+                    <tr><td>Jetpack Compose UI</td><td class="check">✅</td><td class="cross">❌</td><td>N/A</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+                    <tr><td>No-op release artifact</td><td class="check">✅</td><td class="check">✅</td><td>N/A</td><td class="cross">❌</td><td class="cross">❌</td></tr>
+                    <tr><td>Maintained (2026)</td><td class="check">✅</td><td class="check">✅</td><td class="check">✅</td><td class="cross">❌</td><td class="warn">⚠️</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Installation -->
+    <section id="install">
+        <h2>Get <span>Started</span></h2>
+        <p class="subtitle">Add Tracea to your Android project in 2 minutes.</p>
+
+        <div class="install-box">
+            <h3>1. Add JitPack to settings.gradle.kts</h3>
+            <div class="code">
+                <span class="kw">dependencyResolutionManagement</span> {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;repositories {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;google()<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mavenCentral()<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maven { url = uri(<span class="str">"https://jitpack.io"</span>) }<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+                }
+            </div>
+
+            <h3>2. Add dependency to app/build.gradle.kts</h3>
+            <div class="code">
+                <span class="kw">dependencies</span> {<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="com">// Full debugger in debug builds</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">debugImplementation</span>(<span class="str">"com.github.HariKulhari06:tracea:1.2.0"</span>)<br><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="com">// Zero-overhead stub for release builds</span><br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">releaseImplementation</span>(<span class="str">"com.github.HariKulhari06:tracea-noop:1.2.0"</span>)<br>
+                }
+            </div>
+
+            <h3>3. Initialize & attach interceptor</h3>
+            <div class="code">
+                Tracea.initialize(context = <span class="kw">this</span>, config = TraceaConfig(<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;enabled = BuildConfig.DEBUG,<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;showFloatingButton = <span class="kw">true</span><br>
+                ))<br><br>
+                <span class="kw">val</span> client = OkHttpClient.Builder()<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;.addInterceptor(Tracea.interceptor)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;.build()
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="num">12 KB</div>
+                <div class="label">Release Artifact</div>
+            </div>
+            <div class="stat">
+                <div class="num">0 MB</div>
+                <div class="label">Production Impact</div>
+            </div>
+            <div class="stat">
+                <div class="num">~920 KB</div>
+                <div class="label">Debug Footprint</div>
+            </div>
+            <div class="stat">
+                <div class="num">0%</div>
+                <div class="label">Security Risk</div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        Built with ❤️ by <a href="https://github.com/HariKulhari06">Hari Kulhari</a> · <a href="https://github.com/HariKulhari06/tracea">GitHub</a> · MIT License
+    </footer>
+
+</body>
+</html>
