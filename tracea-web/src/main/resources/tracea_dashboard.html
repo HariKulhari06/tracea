@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracea Web Inspector</title>
+    <style>
+        :root {
+            --bg-base: #0D0F17;
+            --bg-surface: #141724;
+            --bg-card: #1C2033;
+            --bg-card-hover: #242942;
+            --bg-card-active: #2D3352;
+            --border-color: #2B304C;
+            --border-subtle: #20243B;
+            --text-main: #E2E6FC;
+            --text-muted: #8E95B8;
+            --text-subtle: #636A8E;
+            --primary: #7E97FF;
+            --primary-hover: #6B86FA;
+            --primary-glow: rgba(126, 151, 255, 0.18);
+            --accent-green: #4FD6BE;
+            --accent-green-bg: rgba(79, 214, 190, 0.12);
+            --accent-red: #F07178;
+            --accent-red-bg: rgba(240, 113, 120, 0.12);
+            --accent-orange: #FFCB6B;
+            --accent-orange-bg: rgba(255, 203, 107, 0.12);
+            --accent-purple: #C792EA;
+            --accent-blue: #82AAFF;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background: var(--bg-base); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; font-size: 13px; }
+
+        /* Top Header */
+        header {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 52px;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .brand-area { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; }
+        .brand-badge { background: linear-gradient(135deg, #7E97FF, #5C76E8); color: #fff; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; }
+        .status-pill { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--accent-green); background: var(--accent-green-bg); border: 1px solid rgba(79, 214, 190, 0.3); padding: 4px 10px; border-radius: 20px; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .header-actions { display: flex; align-items: center; gap: 10px; }
+        .nav-btn { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 7px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+        .nav-btn:hover { background: var(--bg-card-hover); border-color: var(--primary); }
+        .danger-btn { color: var(--accent-red); border-color: rgba(240, 113, 120, 0.3); }
+        .danger-btn:hover { background: var(--accent-red-bg); border-color: var(--accent-red); }
+
+        /* Split Screen Workspace */
+        main { display: flex; flex: 1; overflow: hidden; }
+
+        /* Left Pane: Requests Table */
+        .left-pane { width: 42%; min-width: 360px; max-width: 600px; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; background: var(--bg-surface); }
+        .toolbar { padding: 10px 14px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; background: var(--bg-surface); }
+        .search-row { display: flex; gap: 8px; align-items: center; }
+        .search-box-wrapper { flex: 1; position: relative; display: flex; align-items: center; }
+        .search-box { width: 100%; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 7px; padding: 7px 28px 7px 12px; color: var(--text-main); font-size: 12px; outline: none; transition: border-color 0.15s; }
+        .search-box:focus { border-color: var(--primary); }
+        .search-clear-btn { position: absolute; right: 8px; background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 13px; display: none; }
+        .select-filter { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color); border-radius: 7px; padding: 6px 8px; font-size: 11px; font-weight: 600; outline: none; cursor: pointer; max-width: 140px; }
+
+        .filter-row { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px; }
+        .filter-chip { background: var(--bg-card); color: var(--text-muted); border: 1px solid var(--border-color); padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 600; cursor: pointer; user-select: none; transition: all 0.15s; white-space: nowrap; }
+        .filter-chip:hover { color: var(--text-main); border-color: var(--primary); }
+        .filter-chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .filter-chip.error.active { background: var(--accent-red); border-color: var(--accent-red); }
+
+        .request-list { flex: 1; overflow-y: auto; }
+        
+        /* Session Header */
+        .session-group-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #181C2C; border-bottom: 1px solid var(--border-color); border-top: 1px solid var(--border-color); font-size: 11.5px; font-weight: 700; color: var(--accent-purple); position: sticky; top: 0; z-index: 5; }
+        .session-group-header:first-child { border-top: none; }
+        .session-left-info { display: flex; align-items: center; gap: 6px; overflow: hidden; cursor: pointer; flex: 1; }
+        .session-caret { font-size: 9px; color: var(--text-muted); transition: transform 0.15s; user-select: none; width: 12px; text-align: center; }
+        .session-caret.collapsed { transform: rotate(-90deg); }
+        .session-name-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .session-count-tag { background: var(--bg-card); color: var(--text-muted); padding: 1px 6px; border-radius: 8px; font-size: 10px; font-family: ui-monospace, monospace; border: 1px solid var(--border-color); }
+        .session-actions-group { display: flex; align-items: center; gap: 6px; }
+        .session-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-muted); padding: 3px 8px; border-radius: 5px; font-size: 10.5px; font-weight: 600; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 4px; }
+        .session-btn:hover { color: var(--primary); border-color: var(--primary); background: var(--bg-card-hover); }
+        .session-btn.jira-btn { color: var(--accent-orange); border-color: rgba(255, 203, 107, 0.3); }
+        .session-btn.jira-btn:hover { background: var(--accent-orange-bg); border-color: var(--accent-orange); color: var(--accent-orange); }
+
+        .request-row { padding: 9px 14px; border-bottom: 1px solid var(--border-subtle); cursor: pointer; transition: background 0.1s; display: flex; flex-direction: column; gap: 4px; }
+        .request-row:hover { background: var(--bg-card-hover); }
+        .request-row.selected { background: var(--bg-card-active); border-left: 3px solid var(--primary); padding-left: 11px; }
+
+        .row-line-1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .row-left { display: flex; align-items: center; gap: 8px; overflow: hidden; flex: 1; }
+        .row-path { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-main); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .row-line-2 { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+
+        /* Badges */
+        .badge { font-size: 10.5px; font-weight: 800; padding: 2px 5px; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: 0.3px; flex-shrink: 0; }
+        .badge-get { color: var(--accent-green); background: var(--accent-green-bg); }
+        .badge-post { color: var(--primary); background: var(--primary-glow); }
+        .badge-put { color: var(--accent-orange); background: var(--accent-orange-bg); }
+        .badge-delete { color: var(--accent-red); background: var(--accent-red-bg); }
+        .badge-patch { color: var(--accent-purple); background: rgba(199, 146, 234, 0.12); }
+        
+        .status-pill-badge { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .status-2xx { color: var(--accent-green); background: var(--accent-green-bg); border: 1px solid rgba(79, 214, 190, 0.3); }
+        .status-3xx { color: var(--accent-blue); background: rgba(130, 170, 255, 0.12); border: 1px solid rgba(130, 170, 255, 0.3); }
+        .status-4xx { color: var(--accent-orange); background: var(--accent-orange-bg); border: 1px solid rgba(255, 203, 107, 0.3); }
+        .status-5xx { color: var(--accent-red); background: var(--accent-red-bg); border: 1px solid rgba(240, 113, 120, 0.3); }
+        .status-mock { background: #9C27B0; color: #fff; font-size: 9.5px; padding: 2px 5px; border-radius: 3px; font-weight: 800; }
+
+        /* Right Pane: Deep Inspector */
+        .right-pane { flex: 1; display: flex; flex-direction: column; background: var(--bg-base); overflow: hidden; }
+        .empty-placeholder { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); gap: 12px; font-size: 14px; user-select: none; }
+        
+        .detail-top-card { padding: 14px 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px; }
+        .detail-title-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .detail-url-box { display: flex; align-items: center; justify-content: space-between; background: var(--bg-card); border: 1px solid var(--border-color); padding: 7px 12px; border-radius: 7px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; word-break: break-all; gap: 10px; }
+        .detail-url-text { color: var(--text-main); }
+        .mini-copy-btn { background: var(--bg-surface); border: 1px solid var(--border-color); color: var(--text-muted); cursor: pointer; padding: 3px 8px; border-radius: 5px; font-size: 11px; font-weight: 600; transition: all 0.15s; display: flex; align-items: center; gap: 4px; }
+        .mini-copy-btn:hover { color: var(--primary); border-color: var(--primary); background: var(--bg-card-hover); }
+
+        /* Stats Strip */
+        .stats-strip { display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; }
+        .stat-item { display: flex; align-items: center; gap: 5px; }
+        .stat-val { color: var(--text-main); font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+
+        /* Clean Technical Action Toolbar (Focused on cURL, HAR, URL) */
+        .actions-strip { display: flex; gap: 8px; padding: 8px 20px; background: var(--bg-surface); border-bottom: 1px solid var(--border-color); flex-wrap: wrap; align-items: center; }
+        .action-chip-btn { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-main); padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+        .action-chip-btn:hover { background: var(--bg-card-hover); border-color: var(--primary); color: var(--primary); }
+        .action-chip-btn.highlight { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .action-chip-btn.highlight:hover { background: var(--primary-hover); }
+        .action-chip-btn.jira-hero { background: linear-gradient(135deg, #0052CC, #2684FF); color: #fff; border-color: #2684FF; font-weight: 700; }
+        .action-chip-btn.jira-hero:hover { background: linear-gradient(135deg, #0747A6, #0052CC); }
+
+        /* Tab Navigation */
+        .tab-strip { display: flex; border-bottom: 1px solid var(--border-color); background: var(--bg-surface); padding: 0 20px; gap: 6px; }
+        .tab-btn { padding: 10px 14px; font-size: 12.5px; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+        /* Inspector Body Content */
+        .inspector-body { flex: 1; overflow-y: auto; padding: 20px; }
+
+        /* Tables & Content Cards */
+        .section-header { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px; margin: 16px 0 8px 0; display: flex; align-items: center; justify-content: space-between; }
+        .section-header:first-child { margin-top: 0; }
+
+        .table-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+        .data-table th { text-align: left; padding: 8px 14px; background: var(--bg-card); color: var(--text-muted); font-weight: 600; border-bottom: 1px solid var(--border-color); }
+        .data-table td { padding: 8px 14px; border-bottom: 1px solid var(--border-subtle); word-break: break-all; }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table td.key-col { font-weight: 600; color: var(--accent-purple); width: 30%; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+        .data-table td.val-col { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; color: var(--text-main); }
+
+        /* Collapsible JSON Viewer & Line Numbers */
+        .code-container { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-bottom: 16px; display: flex; flex-direction: column; }
+        .code-header { background: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--text-muted); flex-wrap: wrap; gap: 8px; }
+        .code-controls { display: flex; align-items: center; gap: 6px; }
+        
+        .json-viewer-wrapper { display: flex; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; line-height: 1.6; max-height: 520px; overflow: auto; background: #0A0C13; }
+        .json-gutter { display: flex; flex-direction: column; padding: 12px 0; background: #07090E; border-right: 1px solid var(--border-color); user-select: none; text-align: right; min-width: 44px; color: #4B5270; }
+        .gutter-num { padding: 0 10px; font-size: 11px; height: 19.2px; line-height: 19.2px; }
+
+        .json-tree-body { flex: 1; padding: 12px 14px; color: var(--text-main); overflow-x: auto; white-space: pre; }
+        .json-line { height: 19.2px; line-height: 19.2px; display: flex; align-items: center; }
+        .json-line:hover { background: rgba(126, 151, 255, 0.06); }
+        
+        .json-caret { display: inline-block; width: 14px; text-align: center; cursor: pointer; user-select: none; color: var(--text-muted); font-size: 10px; transition: transform 0.15s, color 0.15s; margin-right: 4px; }
+        .json-caret:hover { color: var(--primary); }
+        .json-caret.collapsed { transform: rotate(-90deg); }
+        .json-spacer { display: inline-block; width: 18px; }
+
+        .json-indent-guide { border-left: 1px dashed rgba(142, 149, 184, 0.18); margin-left: 6px; padding-left: 12px; }
+        .json-collapsed-preview { display: none; background: var(--bg-card); color: var(--text-muted); padding: 1px 6px; border-radius: 4px; font-size: 11px; cursor: pointer; border: 1px solid var(--border-color); margin: 0 4px; }
+        .json-collapsed-preview:hover { color: var(--primary); border-color: var(--primary); }
+
+        .json-key { color: var(--accent-purple); font-weight: 600; }
+        .json-string { color: var(--accent-green); }
+        .json-number { color: var(--accent-blue); }
+        .json-boolean { color: var(--accent-orange); font-weight: 600; }
+        .json-null { color: var(--accent-red); font-weight: 600; }
+        .json-bracket { color: #8E95B8; font-weight: 600; }
+
+        /* Timing Waterfall Bars */
+        .timing-row { display: flex; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--border-subtle); font-size: 12px; }
+        .timing-label { width: 150px; color: var(--text-muted); font-weight: 500; }
+        .timing-bar-container { flex: 1; height: 12px; background: var(--bg-card); border-radius: 6px; overflow: hidden; margin: 0 12px; position: relative; }
+        .timing-bar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--primary), #82AAFF); transition: width 0.3s; }
+        .timing-val { width: 70px; text-align: right; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 600; color: var(--text-main); }
+
+        /* Session Jira Bug Modal */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(5, 7, 12, 0.85); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal-card { background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 12px; width: 95vw; max-width: 1200px; height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.6); overflow: hidden; }
+        .modal-header { padding: 14px 20px; background: var(--bg-card); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
+        .modal-title { font-size: 16px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+        .modal-close-btn { background: transparent; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+        .modal-close-btn:hover { color: var(--accent-red); background: var(--bg-card-hover); }
+
+        .modal-body { display: flex; flex: 1; overflow: hidden; }
+        .modal-left-pane { width: 45%; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; background: var(--bg-base); padding: 16px; gap: 12px; }
+        .canvas-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+        .canvas-container { flex: 1; background: #000; border: 1px solid var(--border-color); border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        #screenshot-canvas { max-width: 100%; max-height: 100%; object-fit: contain; cursor: crosshair; }
+
+        .modal-right-pane { width: 55%; display: flex; flex-direction: column; padding: 16px; gap: 12px; background: var(--bg-surface); overflow-y: auto; }
+        .jira-config-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 11.5px; }
+        .jira-config-input { background: var(--bg-base); border: 1px solid var(--border-color); color: var(--text-main); border-radius: 5px; padding: 4px 8px; font-size: 11.5px; flex: 1; outline: none; }
+        .jira-config-input:focus { border-color: var(--primary); }
+
+        .format-switch-row { display: flex; align-items: center; justify-content: space-between; }
+        .modal-preview-block { background: #0A0C13; border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; font-family: ui-monospace, monospace; font-size: 11.5px; line-height: 1.5; color: var(--text-main); white-space: pre-wrap; word-break: break-all; flex: 1; overflow-y: auto; max-height: 440px; }
+
+        .modal-footer { padding: 12px 20px; background: var(--bg-card); border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+
+        /* Toast Feedback */
+        #toast { position: fixed; bottom: 20px; right: 20px; background: #2E7D32; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 12.5px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.6); display: none; z-index: 2000; animation: fadeIn 0.2s; max-width: 450px; line-height: 1.4; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand-area">
+            <span>📡 Tracea</span>
+            <span class="brand-badge">WEB INSPECTOR</span>
+            <div class="status-pill">
+                <div class="status-dot"></div>
+                <span id="device-status">Live Connected</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <span style="font-size: 12px; color: var(--text-muted); font-family: ui-monospace, monospace;" id="req-counter">0 transactions</span>
+            <button class="nav-btn" onclick="exportFullHar()">📦 Export Full HAR</button>
+            <button class="nav-btn danger-btn" onclick="clearAllRequests()">🗑️ Clear Traffic</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Left Pane: Transactions Stream Table with Session Splits -->
+        <section class="left-pane">
+            <div class="toolbar">
+                <div class="search-row">
+                    <div class="search-box-wrapper">
+                        <input type="text" id="search-input" class="search-box" placeholder="Filter by URL, host, method..." oninput="onSearchInput()">
+                        <button class="search-clear-btn" id="search-clear-btn" onclick="clearSearch()">✖</button>
+                    </div>
+                    <select id="session-select" class="select-filter" onchange="renderList()">
+                        <option value="ALL">📅 All Sessions</option>
+                    </select>
+                    <select id="sort-select" class="select-filter" onchange="renderList()">
+                        <option value="newest">🕒 Newest</option>
+                        <option value="oldest">🕒 Oldest</option>
+                        <option value="slowest">⏱️ Slowest</option>
+                        <option value="largest">💾 Largest</option>
+                        <option value="status">🚦 Status</option>
+                    </select>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-chip active" onclick="setFilter('ALL', this)">ALL</div>
+                    <div class="filter-chip" onclick="setFilter('2xx', this)">2xx Success</div>
+                    <div class="filter-chip" onclick="setFilter('3xx', this)">3xx Redirect</div>
+                    <div class="filter-chip" onclick="setFilter('4xx', this)">4xx Client Err</div>
+                    <div class="filter-chip" onclick="setFilter('5xx', this)">5xx Server Err</div>
+                    <div class="filter-chip error" onclick="setFilter('ERRORS', this)">Errors</div>
+                </div>
+            </div>
+            <div class="request-list" id="request-list-container">
+                <!-- Dynamically injected grouped rows -->
+            </div>
+        </section>
+
+        <!-- Right Pane: Deep Transaction Details Inspector -->
+        <section class="right-pane" id="inspector-pane">
+            <div class="empty-placeholder" id="empty-inspector-view">
+                <div style="font-size: 42px;">🔍</div>
+                <div style="font-weight: 600; font-size: 15px;">Select a network request</div>
+                <div style="font-size: 12px; color: var(--text-subtle);">Inspect full headers, parameters, formatted payload bodies, and timing waterfall.</div>
+            </div>
+
+            <div id="active-inspector-view" style="display: none; flex: 1; flex-direction: column; overflow: hidden;">
+                <!-- Header Banner -->
+                <div class="detail-top-card">
+                    <div class="detail-title-bar">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span id="detail-method-badge" class="badge"></span>
+                            <span id="detail-path" style="font-size: 15px; font-weight: 700; font-family: ui-monospace, monospace;"></span>
+                            <span id="detail-mock-badge" class="status-mock" style="display: none;">🎭 MOCK</span>
+                        </div>
+                        <span id="detail-status-badge" class="status-pill-badge"></span>
+                    </div>
+
+                    <div class="detail-url-box">
+                        <span class="detail-url-text" id="detail-full-url"></span>
+                        <button class="mini-copy-btn" onclick="copyText(selectedEvent ? selectedEvent.url : '', 'URL copied!')">📋 Copy URL</button>
+                    </div>
+
+                    <div class="stats-strip">
+                        <div class="stat-item">⏱️ Duration: <span class="stat-val" id="stat-duration">-</span></div>
+                        <div class="stat-item">📤 Request: <span class="stat-val" id="stat-req-size">-</span></div>
+                        <div class="stat-item">📥 Response: <span class="stat-val" id="stat-res-size">-</span></div>
+                        <div class="stat-item">🕒 Time: <span class="stat-val" id="stat-timestamp">-</span></div>
+                        <div class="stat-item">🏷️ Session: <span class="stat-val" id="stat-session">-</span></div>
+                    </div>
+                </div>
+
+                <!-- Clean Technical Action Toolbar (Focused on cURL, HAR, Session View) -->
+                <div class="actions-strip">
+                    <button class="action-chip-btn highlight" onclick="copyCurlCommand()">📋 Copy as cURL</button>
+                    <button class="action-chip-btn" onclick="downloadSingleHar()">📦 Export Single HAR</button>
+                    <button class="action-chip-btn" onclick="openParentSessionModal()">🐛 Generate Session Bug Report</button>
+                </div>
+
+                <!-- Tabs Strip -->
+                <div class="tab-strip">
+                    <div class="tab-btn active" onclick="switchTab('overview', this)">Overview</div>
+                    <div class="tab-btn" onclick="switchTab('headers', this)">Headers</div>
+                    <div class="tab-btn" onclick="switchTab('request', this)">Request Body</div>
+                    <div class="tab-btn" onclick="switchTab('response', this)">Response Body</div>
+                    <div class="tab-btn" onclick="switchTab('timing', this)">Timing Waterfall</div>
+                </div>
+
+                <!-- Inspector Body Content -->
+                <div class="inspector-body" id="tab-content-area">
+                    <!-- Injected by renderTab() -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Session Jira Bug Report Modal -->
+    <div class="modal-overlay" id="jira-bug-modal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span>🐛 Session Bug Package Generator</span>
+                    <span id="modal-session-tag" class="session-count-tag">Session</span>
+                </div>
+                <button class="modal-close-btn" onclick="closeJiraBugModal()">✖</button>
+            </div>
+            <div class="modal-body">
+                <!-- Left: Live Screenshot & Markup Canvas -->
+                <div class="modal-left-pane">
+                    <div class="canvas-toolbar">
+                        <span style="font-weight: 700; color: var(--text-main); font-size: 12px;">📱 Screen Markup</span>
+                        <div style="display: flex; gap: 4px; align-items: center;">
+                            <button class="session-btn" id="pen-red-btn" style="color: #F07178; font-weight: 700;" onclick="setPenColor('#F07178')">🔴 Pen</button>
+                            <button class="session-btn" id="pen-yellow-btn" style="color: #FFCB6B;" onclick="setPenColor('#FFCB6B')">🟡 Highlight</button>
+                            <button class="session-btn" onclick="undoCanvasStroke()">↩️</button>
+                            <button class="session-btn" onclick="clearCanvasMarkup()">🧹</button>
+                            <button class="session-btn" onclick="refreshModalScreenshot()">🔄</button>
+                            <button class="session-btn" onclick="downloadAnnotatedScreenshot()">💾 Save</button>
+                        </div>
+                    </div>
+                    <div class="canvas-container" id="canvas-container-box">
+                        <canvas id="screenshot-canvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Right: Formatted Markdown & Timeline Preview -->
+                <div class="modal-right-pane">
+                    <div class="jira-config-box" style="flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 220px;">
+                            <span style="font-weight: 600; color: var(--text-muted);">🏢 Domain:</span>
+                            <input type="text" id="jira-domain-input" class="jira-config-input" placeholder="e.g. company.atlassian.net" onchange="saveJiraConfig()">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-weight: 600; color: var(--text-muted);" title="Numeric Project ID like 10000 or Key like MOB">Project PID / Key:</span>
+                            <input type="text" id="jira-project-input" class="jira-config-input" style="max-width: 100px;" placeholder="10000 / MOB" onchange="saveJiraConfig()">
+                        </div>
+                    </div>
+
+                    <div class="format-switch-row">
+                        <span style="font-weight: 700; color: var(--text-main); font-size: 12px;">📋 Clean Timeline & Diagnostics</span>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="session-btn active" id="format-jira-btn" onclick="setModalFormat('jira')">Jira Format</button>
+                            <button class="session-btn" id="format-md-btn" onclick="setModalFormat('markdown')">Markdown / Slack</button>
+                        </div>
+                    </div>
+                    <div class="modal-preview-block" id="modal-markdown-preview">
+                        <!-- Markdown text injected here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div style="color: var(--text-muted); font-size: 11.5px; display: flex; align-items: center; gap: 8px;">
+                    <span>💡 <b>Tip:</b> If Jira asks to select project first, press <b>Cmd+V / Ctrl+V</b> to paste description directly.</span>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="action-chip-btn" onclick="copyModalMarkdown()">📋 Copy Description</button>
+                    <button class="action-chip-btn" onclick="copyScreenshotToClipboard()">🖼️ Copy Screenshot</button>
+                    <button class="action-chip-btn" onclick="downloadModalSessionHar()">📦 Download HAR</button>
+                    <button class="action-chip-btn jira-hero" onclick="openJiraPrefilledTab()">🚀 Open Jira & Prepare Bug</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        let allEvents = [];
+        let selectedEvent = null;
+        let activeFilter = 'ALL';
+        let currentTab = 'overview';
+        let collapsedSessions = {};
+        let currentModalSession = null;
+        let currentModalFormat = 'jira';
+        let ws = null;
+
+        // Screenshot Drawing Canvas Variables
+        const canvas = document.getElementById('screenshot-canvas');
+        const ctx = canvas.getContext('2d');
+        let bgImage = new Image();
+        let isDrawing = false;
+        let lastX = 0, lastY = 0;
+        let currentColor = '#F07178';
+        let currentLineWidth = 8;
+        let strokeHistory = [];
+
+        function initWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = protocol + '//' + window.location.host + '/ws/traffic';
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = function() {
+                document.getElementById('device-status').textContent = 'Live Connected';
+                fetchInitialEvents();
+            };
+
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (Array.isArray(data)) {
+                        allEvents = data;
+                        updateSessionDropdown();
+                        renderList();
+                        if (selectedEvent) {
+                            const updated = allEvents.find(e => e.id === selectedEvent.id);
+                            if (updated) { selectedEvent = updated; renderTab(); }
+                        }
+                    }
+                } catch(e) { console.error(e); }
+            };
+
+            ws.onclose = function() {
+                document.getElementById('device-status').textContent = 'Reconnecting...';
+                setTimeout(initWebSocket, 2000);
+            };
+        }
+
+        function fetchInitialEvents() {
+            fetch('/api/events')
+                .then(res => res.json())
+                .then(data => {
+                    allEvents = data || [];
+                    updateSessionDropdown();
+                    renderList();
+                })
+                .catch(e => console.error(e));
+        }
+
+        function updateSessionDropdown() {
+            const select = document.getElementById('session-select');
+            const currentSelected = select.value;
+            const sessionsMap = {};
+
+            allEvents.forEach(e => {
+                const sName = e.sessionName || e.sessionId || 'Default Session';
+                sessionsMap[sName] = (sessionsMap[sName] || 0) + 1;
+            });
+
+            let optionsHtml = '<option value="ALL">📅 All Sessions (' + allEvents.length + ')</option>';
+            for (const [name, count] of Object.entries(sessionsMap)) {
+                optionsHtml += '<option value="' + escapeHtml(name) + '">' + escapeHtml(name) + ' (' + count + ')</option>';
+            }
+            select.innerHTML = optionsHtml;
+            select.value = currentSelected || 'ALL';
+        }
+
+        function onSearchInput() {
+            const val = document.getElementById('search-input').value;
+            document.getElementById('search-clear-btn').style.display = val ? 'block' : 'none';
+            renderList();
+        }
+
+        function clearSearch() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('search-clear-btn').style.display = 'none';
+            renderList();
+        }
+
+        function setFilter(filter, el) {
+            activeFilter = filter;
+            document.querySelectorAll('.filter-row .filter-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            renderList();
+        }
+
+        function renderList() {
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            const sessionFilter = document.getElementById('session-select').value;
+            const sortBy = document.getElementById('sort-select').value;
+            const container = document.getElementById('request-list-container');
+
+            let filtered = allEvents.filter(function(e) {
+                const matchesQuery = !query || e.url.toLowerCase().indexOf(query) >= 0 || (e.method && e.method.toLowerCase().indexOf(query) >= 0);
+                const sName = e.sessionName || e.sessionId || 'Default Session';
+                const matchesSession = sessionFilter === 'ALL' || sName === sessionFilter;
+
+                const code = e.statusCode || 0;
+                let matchesFilter = true;
+                if (activeFilter === '2xx') matchesFilter = code >= 200 && code < 300;
+                else if (activeFilter === '3xx') matchesFilter = code >= 300 && code < 400;
+                else if (activeFilter === '4xx') matchesFilter = code >= 400 && code < 500;
+                else if (activeFilter === '5xx') matchesFilter = code >= 500 && code < 600;
+                else if (activeFilter === 'ERRORS') matchesFilter = code >= 400 || !!e.error;
+                return matchesQuery && matchesSession && matchesFilter;
+            });
+
+            document.getElementById('req-counter').textContent = filtered.length + ' / ' + allEvents.length + ' transactions';
+
+            filtered.sort(function(a, b) {
+                if (sortBy === 'newest') return b.timestamp - a.timestamp;
+                if (sortBy === 'oldest') return a.timestamp - b.timestamp;
+                if (sortBy === 'slowest') {
+                    const durA = (a.timing && a.timing.totalMs) || (a.timing && a.timing.endTimestamp && a.timing.startTimestamp ? a.timing.endTimestamp - a.timing.startTimestamp : 0);
+                    const durB = (b.timing && b.timing.totalMs) || (b.timing && b.timing.endTimestamp && b.timing.startTimestamp ? b.timing.endTimestamp - b.timing.startTimestamp : 0);
+                    return durB - durA;
+                }
+                if (sortBy === 'largest') return (b.responseSize || 0) - (a.responseSize || 0);
+                if (sortBy === 'status') return (b.statusCode || 0) - (a.statusCode || 0);
+                return 0;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px;">No transactions match criteria</div>';
+                return;
+            }
+
+            const groups = {};
+            filtered.forEach(e => {
+                const sName = e.sessionName || e.sessionId || 'Default Session';
+                if (!groups[sName]) groups[sName] = [];
+                groups[sName].push(e);
+            });
+
+            let finalHtml = '';
+            for (const [sName, items] of Object.entries(groups)) {
+                const isCollapsed = collapsedSessions[sName] === true;
+                const countText = items.length === 1 ? '1 request' : items.length + ' requests';
+                const hasErrors = items.some(e => (e.statusCode && e.statusCode >= 400) || !!e.error);
+
+                finalHtml += '<div class="session-group-wrapper" data-session="' + escapeHtml(sName) + '">' +
+                    '<div class="session-group-header">' +
+                        '<div class="session-left-info" onclick="toggleSessionGroup(\'' + escapeBackticks(sName) + '\')">' +
+                            '<span class="session-caret ' + (isCollapsed ? 'collapsed' : '') + '">▼</span>' +
+                            '<span class="session-name-label">' + escapeHtml(sName) + '</span>' +
+                            '<span class="session-count-tag">' + countText + '</span>' +
+                            (hasErrors ? '<span style="color: var(--accent-red); font-size: 11px;" title="Contains failed requests">⚠️</span>' : '') +
+                        '</div>' +
+                        '<div class="session-actions-group">' +
+                            '<button class="session-btn jira-btn" onclick="openJiraBugModal(\'' + escapeBackticks(sName) + '\')">🐛 Jira Report</button>' +
+                            '<button class="session-btn" onclick="exportSessionHar(\'' + escapeBackticks(sName) + '\')">📦 HAR</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="session-items-container" style="display: ' + (isCollapsed ? 'none' : 'block') + ';">';
+
+                finalHtml += items.map(function(e) {
+                    const isSelected = selectedEvent && selectedEvent.id === e.id;
+                    const methodClass = 'badge-' + (e.method ? e.method.toLowerCase() : 'get');
+                    const isMock = e.responseHeaders && (e.responseHeaders['X-Mocked-By'] || e.responseHeaders['x-mocked-by']);
+                    
+                    let statusClass = 'status-2xx';
+                    const code = e.statusCode || 0;
+                    if (code >= 500 || e.error) statusClass = 'status-5xx';
+                    else if (code >= 400) statusClass = 'status-4xx';
+                    else if (code >= 300) statusClass = 'status-3xx';
+
+                    const durationVal = (e.timing && e.timing.totalMs) || (e.timing && e.timing.endTimestamp && e.timing.startTimestamp ? (e.timing.endTimestamp - e.timing.startTimestamp) : null);
+                    const durationText = durationVal !== null ? durationVal + ' ms' : '-';
+                    const sizeText = formatBytes(e.responseSize || 0);
+                    const timeText = new Date(e.timestamp).toLocaleTimeString();
+
+                    return '<div class="request-row ' + (isSelected ? 'selected' : '') + '" onclick="selectRequest(\'' + e.id + '\')">' +
+                        '<div class="row-line-1">' +
+                            '<div class="row-left">' +
+                                (isMock ? '<span class="status-mock">MOCK</span>' : '') +
+                                '<span class="badge ' + methodClass + '">' + (e.method || 'GET') + '</span>' +
+                                '<span class="row-path" title="' + escapeHtml(e.url) + '">' + escapeHtml(e.path || e.url) + '</span>' +
+                            '</div>' +
+                            '<span class="status-pill-badge ' + statusClass + '">' + (code > 0 ? code : (e.error ? 'ERR' : '...')) + '</span>' +
+                        '</div>' +
+                        '<div class="row-line-2">' +
+                            '<span>' + escapeHtml(e.host || '') + '</span>' +
+                            '<span>' + timeText + ' &bull; ' + durationText + ' &bull; ' + sizeText + '</span>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+
+                finalHtml += '</div></div>';
+            }
+
+            container.innerHTML = finalHtml;
+        }
+
+        function toggleSessionGroup(sName) {
+            collapsedSessions[sName] = !collapsedSessions[sName];
+            renderList();
+        }
+
+        function exportSessionHar(sName) {
+            window.open('/api/export/har?sessionId=' + encodeURIComponent(sName), '_blank');
+        }
+
+        function selectRequest(id) {
+            selectedEvent = allEvents.find(function(e) { return e.id === id; });
+            if (!selectedEvent) return;
+
+            document.getElementById('empty-inspector-view').style.display = 'none';
+            const activeView = document.getElementById('active-inspector-view');
+            activeView.style.display = 'flex';
+
+            const e = selectedEvent;
+            document.getElementById('detail-method-badge').textContent = e.method || 'GET';
+            document.getElementById('detail-method-badge').className = 'badge badge-' + (e.method ? e.method.toLowerCase() : 'get');
+            document.getElementById('detail-path').textContent = e.path || e.url;
+            document.getElementById('detail-full-url').textContent = e.url;
+
+            const isMock = e.responseHeaders && (e.responseHeaders['X-Mocked-By'] || e.responseHeaders['x-mocked-by']);
+            document.getElementById('detail-mock-badge').style.display = isMock ? 'inline-block' : 'none';
+
+            const code = e.statusCode || 0;
+            const statusEl = document.getElementById('detail-status-badge');
+            statusEl.textContent = code > 0 ? (code + ' ' + (e.statusMessage || 'OK')) : (e.error ? 'FAILED' : 'In Progress');
+            let statusClass = 'status-2xx';
+            if (code >= 500 || e.error) statusClass = 'status-5xx';
+            else if (code >= 400) statusClass = 'status-4xx';
+            else if (code >= 300) statusClass = 'status-3xx';
+            statusEl.className = 'status-pill-badge ' + statusClass;
+
+            const durationVal = (e.timing && e.timing.totalMs) || (e.timing && e.timing.endTimestamp && e.timing.startTimestamp ? (e.timing.endTimestamp - e.timing.startTimestamp) : null);
+            document.getElementById('stat-duration').textContent = durationVal !== null ? durationVal + ' ms' : '-';
+            document.getElementById('stat-req-size').textContent = formatBytes(e.requestSize || 0);
+            document.getElementById('stat-res-size').textContent = formatBytes(e.responseSize || 0);
+            document.getElementById('stat-timestamp').textContent = new Date(e.timestamp).toLocaleTimeString();
+            document.getElementById('stat-session').textContent = e.sessionName || e.sessionId || 'Default';
+
+            renderTab();
+            renderList();
+        }
+
+        function openParentSessionModal() {
+            if (!selectedEvent) return;
+            const sName = selectedEvent.sessionName || selectedEvent.sessionId || 'Default Session';
+            openJiraBugModal(sName);
+        }
+
+        function switchTab(tab, el) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-strip .tab-btn').forEach(function(t) { t.classList.remove('active'); });
+            el.classList.add('active');
+            renderTab();
+        }
+
+        function renderTab() {
+            if (!selectedEvent) return;
+            const area = document.getElementById('tab-content-area');
+            const e = selectedEvent;
+
+            if (currentTab === 'overview') {
+                const duration = (e.timing && e.timing.totalMs) || (e.timing && e.timing.endTimestamp && e.timing.startTimestamp ? (e.timing.endTimestamp - e.timing.startTimestamp) : null);
+                
+                let errorBanner = '';
+                if (e.error) {
+                    errorBanner = '<div style="background: var(--accent-red-bg); border: 1px solid var(--accent-red); padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; color: var(--accent-red);">' +
+                        '<div style="font-weight: 700; margin-bottom: 4px;">⚠️ Network Failure: ' + escapeHtml(e.error.type || 'UNKNOWN') + '</div>' +
+                        '<div style="font-size: 12px;">' + escapeHtml(e.error.message || 'No error message provided') + '</div>' +
+                    '</div>';
+                }
+
+                area.innerHTML = errorBanner +
+                    '<div class="section-header">General Information</div>' +
+                    '<div class="table-card">' +
+                        '<table class="data-table">' +
+                            '<tr><td class="key-col">Request URL</td><td class="val-col">' + escapeHtml(e.url) + '</td></tr>' +
+                            '<tr><td class="key-col">Request Method</td><td class="val-col">' + (e.method || 'GET') + '</td></tr>' +
+                            '<tr><td class="key-col">Status</td><td class="val-col">' + (e.statusCode || '-') + ' ' + escapeHtml(e.statusMessage || '') + '</td></tr>' +
+                            '<tr><td class="key-col">Protocol</td><td class="val-col">' + (e.protocol || 'HTTP/1.1') + '</td></tr>' +
+                            '<tr><td class="key-col">Host</td><td class="val-col">' + escapeHtml(e.host || '-') + '</td></tr>' +
+                            '<tr><td class="key-col">Path</td><td class="val-col">' + escapeHtml(e.path || '-') + '</td></tr>' +
+                            '<tr><td class="key-col">Duration</td><td class="val-col">' + (duration !== null ? duration + ' ms' : '-') + '</td></tr>' +
+                        '</table>' +
+                    '</div>' +
+                    '<div class="section-header">Response Body Preview</div>' +
+                    renderInteractiveJsonCard(e.responseBody, 'overview-res');
+            } else if (currentTab === 'headers') {
+                let reqRows = '', resRows = '', queryRows = '';
+                
+                if (e.queryParameters && Object.keys(e.queryParameters).length > 0) {
+                    for (const k in e.queryParameters) {
+                        const v = e.queryParameters[k];
+                        queryRows += '<tr><td class="key-col">' + escapeHtml(k) + '</td><td class="val-col">' + escapeHtml(Array.isArray(v) ? v.join(', ') : v) + '</td></tr>';
+                    }
+                }
+
+                if (e.requestHeaders) {
+                    for (const k in e.requestHeaders) {
+                        const v = e.requestHeaders[k];
+                        reqRows += '<tr><td class="key-col">' + escapeHtml(k) + '</td><td class="val-col">' + escapeHtml(Array.isArray(v) ? v.join(', ') : v) + '</td></tr>';
+                    }
+                }
+
+                if (e.responseHeaders) {
+                    for (const k in e.responseHeaders) {
+                        const v = e.responseHeaders[k];
+                        resRows += '<tr><td class="key-col">' + escapeHtml(k) + '</td><td class="val-col">' + escapeHtml(Array.isArray(v) ? v.join(', ') : v) + '</td></tr>';
+                    }
+                }
+
+                area.innerHTML = (queryRows ? '<div class="section-header">Query Parameters</div><div class="table-card"><table class="data-table">' + queryRows + '</table></div>' : '') +
+                    '<div class="section-header">Request Headers (' + (e.requestHeaders ? Object.keys(e.requestHeaders).length : 0) + ')</div>' +
+                    '<div class="table-card"><table class="data-table">' + (reqRows || '<tr><td colspan="2" style="color: var(--text-muted); text-align: center;">No Request Headers</td></tr>') + '</table></div>' +
+                    '<div class="section-header">Response Headers (' + (e.responseHeaders ? Object.keys(e.responseHeaders).length : 0) + ')</div>' +
+                    '<div class="table-card"><table class="data-table">' + (resRows || '<tr><td colspan="2" style="color: var(--text-muted); text-align: center;">No Response Headers</td></tr>') + '</table></div>';
+            } else if (currentTab === 'request') {
+                let querySection = '';
+                if (e.queryParameters && Object.keys(e.queryParameters).length > 0) {
+                    let queryRows = '';
+                    for (const k in e.queryParameters) {
+                        const v = e.queryParameters[k];
+                        queryRows += '<tr><td class="key-col">' + escapeHtml(k) + '</td><td class="val-col">' + escapeHtml(Array.isArray(v) ? v.join(', ') : v) + '</td></tr>';
+                    }
+                    querySection = '<div class="section-header">Query Parameters</div><div class="table-card"><table class="data-table">' + queryRows + '</table></div>';
+                }
+
+                area.innerHTML = querySection +
+                    '<div class="section-header">Request Payload (' + formatBytes(e.requestSize || 0) + ')</div>' +
+                    renderInteractiveJsonCard(e.requestBody, 'req-body');
+            } else if (currentTab === 'response') {
+                area.innerHTML = '<div class="section-header">Response Payload (' + formatBytes(e.responseSize || 0) + ')</div>' +
+                    renderInteractiveJsonCard(e.responseBody, 'res-body');
+            } else if (currentTab === 'timing') {
+                const t = e.timing || {};
+                const total = t.totalMs || (t.endTimestamp && t.startTimestamp ? t.endTimestamp - t.startTimestamp : 1);
+                
+                function renderTimingBar(label, ms) {
+                    if (ms === undefined || ms === null) return '';
+                    const pct = Math.max(4, Math.min(100, Math.round((ms / total) * 100)));
+                    return '<div class="timing-row">' +
+                        '<div class="timing-label">' + label + '</div>' +
+                        '<div class="timing-bar-container"><div class="timing-bar-fill" style="width: ' + pct + '%;"></div></div>' +
+                        '<div class="timing-val">' + ms + ' ms</div>' +
+                    '</div>';
+                }
+
+                area.innerHTML = '<div class="section-header">Detailed Timing Breakdown</div>' +
+                    '<div class="table-card">' +
+                        renderTimingBar('DNS Lookup', t.dnsMs) +
+                        renderTimingBar('TCP Connect', t.connectMs) +
+                        renderTimingBar('TLS Handshake', t.tlsMs) +
+                        renderTimingBar('Waiting (TTFB)', t.waitingMs) +
+                        renderTimingBar('Content Download', t.downloadMs) +
+                        '<div class="timing-row" style="background: var(--bg-card); font-weight: 700;">' +
+                            '<div class="timing-label" style="color: var(--text-main);">Total Duration</div>' +
+                            '<div class="timing-bar-container"><div class="timing-bar-fill" style="width: 100%; background: var(--accent-green);"></div></div>' +
+                            '<div class="timing-val" style="color: var(--accent-green);">' + (total > 1 ? total : 0) + ' ms</div>' +
+                        '</div>' +
+                    '</div>';
+            }
+        }
+
+        /* Interactive Collapsible JSON Viewer with Line Numbers */
+        function renderInteractiveJsonCard(bodyObj, cardId) {
+            if (!bodyObj) {
+                return '<div class="code-container"><div class="json-tree-body" style="color: var(--text-muted); text-align: center; padding: 30px;">(No body payload)</div></div>';
+            }
+
+            if (!bodyObj.content) {
+                const isImage = bodyObj.contentType === 'IMAGE';
+                const icon = isImage ? '🖼️' : '📦';
+                const label = isImage ? 'Binary Image Stream' : 'Binary Stream';
+                return '<div class="code-container" id="card-' + cardId + '">' +
+                    '<div class="code-header">' +
+                        '<span>' + (bodyObj.contentType || 'Binary') + ' &bull; ' + formatBytes(bodyObj.size || 0) + '</span>' +
+                    '</div>' +
+                    '<div class="json-tree-body" style="color: var(--text-main); text-align: center; padding: 36px 20px; display: flex; flex-direction: column; align-items: center; gap: 8px;">' +
+                        '<div style="font-size: 36px;">' + icon + '</div>' +
+                        '<div style="font-weight: 700; font-size: 14px;">' + label + ' (' + formatBytes(bodyObj.size || 0) + ')</div>' +
+                        '<div style="font-size: 12px; color: var(--text-muted);">Stream captured safely with length preserved.</div>' +
+                    '</div>' +
+                '</div>';
+            }
+
+            const rawContent = bodyObj.content;
+            let parsedJson = null;
+            try {
+                parsedJson = JSON.parse(rawContent);
+            } catch(e) { }
+
+            if (parsedJson === null || typeof parsedJson !== 'object') {
+                const lines = escapeHtml(rawContent).split('\n');
+                let gutterHtml = '', linesHtml = '';
+                for (let i = 0; i < lines.length; i++) {
+                    gutterHtml += '<div class="gutter-num">' + (i + 1) + '</div>';
+                    linesHtml += '<div class="json-line">' + lines[i] + '</div>';
+                }
+                return '<div class="code-container" id="card-' + cardId + '">' +
+                    '<div class="code-header">' +
+                        '<span>' + (bodyObj.contentType || 'Text') + ' &bull; ' + formatBytes(bodyObj.size || 0) + '</span>' +
+                        '<div class="code-controls">' +
+                            '<button class="mini-copy-btn" onclick="copyText(`' + escapeBackticks(rawContent) + '`, \'Payload copied!\')">📋 Copy</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="json-viewer-wrapper">' +
+                        '<div class="json-gutter">' + gutterHtml + '</div>' +
+                        '<div class="json-tree-body">' + linesHtml + '</div>' +
+                    '</div>' +
+                '</div>';
+            }
+
+            const builder = { lineCount: 0, gutterHtml: '', treeHtml: '' };
+            renderJsonNode(parsedJson, null, builder, 0, false);
+
+            return '<div class="code-container" id="card-' + cardId + '">' +
+                '<div class="code-header">' +
+                    '<span>JSON &bull; ' + formatBytes(bodyObj.size || 0) + ' &bull; ' + builder.lineCount + ' lines</span>' +
+                    '<div class="code-controls">' +
+                        '<button class="mini-copy-btn" onclick="expandAllJson(\'card-' + cardId + '\')">▼ Expand All</button>' +
+                        '<button class="mini-copy-btn" onclick="collapseAllJson(\'card-' + cardId + '\')">▶ Collapse All</button>' +
+                        '<button class="mini-copy-btn" onclick="copyText(`' + escapeBackticks(JSON.stringify(parsedJson, null, 2)) + '`, \'Formatted JSON copied!\')">📋 Copy</button>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="json-viewer-wrapper">' +
+                    '<div class="json-gutter" id="gutter-' + cardId + '">' + builder.gutterHtml + '</div>' +
+                    '<div class="json-tree-body" id="tree-' + cardId + '">' + builder.treeHtml + '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function renderJsonNode(val, key, b, indentLevel, isLast) {
+            b.lineCount++;
+            b.gutterHtml += '<div class="gutter-num">' + b.lineCount + '</div>';
+
+            const indentSpaces = '  '.repeat(indentLevel);
+            const comma = isLast ? '' : ',';
+            const keyHtml = key !== null ? '<span class="json-key">"' + escapeHtml(key) + '"</span>: ' : '';
+
+            if (val === null) {
+                b.treeHtml += '<div class="json-line">' + indentSpaces + '<span class="json-spacer"></span>' + keyHtml + '<span class="json-null">null</span>' + comma + '</div>';
+                return;
+            }
+
+            if (typeof val === 'boolean') {
+                b.treeHtml += '<div class="json-line">' + indentSpaces + '<span class="json-spacer"></span>' + keyHtml + '<span class="json-boolean">' + val + '</span>' + comma + '</div>';
+                return;
+            }
+
+            if (typeof val === 'number') {
+                b.treeHtml += '<div class="json-line">' + indentSpaces + '<span class="json-spacer"></span>' + keyHtml + '<span class="json-number">' + val + '</span>' + comma + '</div>';
+                return;
+            }
+
+            if (typeof val === 'string') {
+                b.treeHtml += '<div class="json-line">' + indentSpaces + '<span class="json-spacer"></span>' + keyHtml + '<span class="json-string">"' + escapeHtml(val) + '"</span>' + comma + '</div>';
+                return;
+            }
+
+            if (Array.isArray(val)) {
+                if (val.length === 0) {
+                    b.treeHtml += '<div class="json-line">' + indentSpaces + '<span class="json-spacer"></span>' + keyHtml + '<span class="json-bracket">[]</span>' + comma + '</div>';
+                    return;
+                }
+
+                b.treeHtml += '<div class="json-node-block">' +
+                    '<div class="json-line">' +
+                        indentSpaces +
+                        '<span class="json-caret" onclick="toggleJsonBlock(this)">▼</span>' +
+                        keyHtml +
+                        '<span class="json-bracket">[</span>' +
+                        '<span class="json-collapsed-preview" onclick="toggleJsonBlock(this.previousElementSibling.previousElementSibling)">... ' + val.length + ' items ...</span>' +
+                    '</div>' +
+                    '<div class="json-node-children json-indent-guide">';
+
+                for (let i = 0; i < val.length; i++) {
+                    renderJsonNode(val[i], null, b, indentLevel + 1, i === val.length - 1);
+                }
+
+                b.lineCount++;
+                b.gutterHtml += '<div class="gutter-num">' + b.lineCount + '</div>';
+                b.treeHtml += '</div>' +
+                    '<div class="json-line json-closing-line">' + indentSpaces + '<span class="json-spacer"></span><span class="json-bracket">]</span>' + comma + '</div>' +
+                '</div>';
+                return;
+            }
+
+            if (typeof val === 'object') {
+                const keys = Object.keys(val);
+                if (keys.length === 0) {
+                    b.treeHtml += '<div class="json-line">' + indentSpaces + '<span class="json-spacer"></span>' + keyHtml + '<span class="json-bracket">{}</span>' + comma + '</div>';
+                    return;
+                }
+
+                b.treeHtml += '<div class="json-node-block">' +
+                    '<div class="json-line">' +
+                        indentSpaces +
+                        '<span class="json-caret" onclick="toggleJsonBlock(this)">▼</span>' +
+                        keyHtml +
+                        '<span class="json-bracket">{</span>' +
+                        '<span class="json-collapsed-preview" onclick="toggleJsonBlock(this.previousElementSibling.previousElementSibling)">... ' + keys.length + ' keys ...</span>' +
+                    '</div>' +
+                    '<div class="json-node-children json-indent-guide">';
+
+                for (let i = 0; i < keys.length; i++) {
+                    const k = keys[i];
+                    renderJsonNode(val[k], k, b, indentLevel + 1, i === keys.length - 1);
+                }
+
+                b.lineCount++;
+                b.gutterHtml += '<div class="gutter-num">' + b.lineCount + '</div>';
+                b.treeHtml += '</div>' +
+                    '<div class="json-line json-closing-line">' + indentSpaces + '<span class="json-spacer"></span><span class="json-bracket">}</span>' + comma + '</div>' +
+                '</div>';
+            }
+        }
+
+        function toggleJsonBlock(caretEl) {
+            const block = caretEl.closest('.json-node-block');
+            if (!block) return;
+            const children = block.querySelector('.json-node-children');
+            const preview = block.querySelector('.json-collapsed-preview');
+            const closing = block.querySelector('.json-closing-line');
+            const caret = block.querySelector('.json-caret');
+
+            if (!children) return;
+            const isCollapsed = children.style.display === 'none';
+
+            if (isCollapsed) {
+                children.style.display = 'block';
+                if (preview) preview.style.display = 'none';
+                if (closing) closing.style.display = 'flex';
+                if (caret) caret.classList.remove('collapsed');
+            } else {
+                children.style.display = 'none';
+                if (preview) preview.style.display = 'inline-block';
+                if (closing) closing.style.display = 'none';
+                if (caret) caret.classList.add('collapsed');
+            }
+        }
+
+        function expandAllJson(cardId) {
+            const card = document.getElementById(cardId);
+            if (!card) return;
+            card.querySelectorAll('.json-node-children').forEach(el => el.style.display = 'block');
+            card.querySelectorAll('.json-collapsed-preview').forEach(el => el.style.display = 'none');
+            card.querySelectorAll('.json-closing-line').forEach(el => el.style.display = 'flex');
+            card.querySelectorAll('.json-caret').forEach(el => el.classList.remove('collapsed'));
+        }
+
+        function collapseAllJson(cardId) {
+            const card = document.getElementById(cardId);
+            if (!card) return;
+            card.querySelectorAll('.json-node-children').forEach(el => el.style.display = 'none');
+            card.querySelectorAll('.json-collapsed-preview').forEach(el => el.style.display = 'inline-block');
+            card.querySelectorAll('.json-closing-line').forEach(el => el.style.display = 'none');
+            card.querySelectorAll('.json-caret').forEach(el => el.classList.add('collapsed'));
+        }
+
+        /* Session Jira Bug Report Modal & Automated Attachment Logic */
+        function openJiraBugModal(sName) {
+            currentModalSession = sName;
+            document.getElementById('modal-session-tag').textContent = sName;
+            document.getElementById('jira-bug-modal').style.display = 'flex';
+            
+            // Load saved Jira configuration
+            document.getElementById('jira-domain-input').value = localStorage.getItem('tracea_jira_domain') || '';
+            document.getElementById('jira-project-input').value = localStorage.getItem('tracea_jira_project') || '';
+
+            setModalFormat('jira');
+            refreshModalScreenshot();
+            setupCanvasDrawing();
+        }
+
+        function closeJiraBugModal() {
+            document.getElementById('jira-bug-modal').style.display = 'none';
+        }
+
+        function saveJiraConfig() {
+            const domain = document.getElementById('jira-domain-input').value.trim();
+            const project = document.getElementById('jira-project-input').value.trim();
+            if (domain) localStorage.setItem('tracea_jira_domain', domain);
+            if (project) localStorage.setItem('tracea_jira_project', project);
+        }
+
+        function setModalFormat(format) {
+            currentModalFormat = format;
+            document.getElementById('format-jira-btn').classList.toggle('active', format === 'jira');
+            document.getElementById('format-md-btn').classList.toggle('active', format === 'markdown');
+
+            const sessionEvents = allEvents.filter(e => (e.sessionName || e.sessionId || 'Default Session') === currentModalSession);
+            const reportText = currentModalFormat === 'jira' ? generateSessionJiraReport(currentModalSession, sessionEvents) : generateSessionMarkdownReport(currentModalSession, sessionEvents);
+            document.getElementById('modal-markdown-preview').textContent = reportText;
+        }
+
+        /* Clean Lean Jira & Markdown Reports */
+        function generateSessionJiraReport(sName, events) {
+            const total = events.length;
+            const errors = events.filter(e => (e.statusCode && e.statusCode >= 400) || !!e.error);
+            const firstEvent = events[0] || {};
+            const lastEvent = events[events.length - 1] || {};
+            const durationMs = (lastEvent.timestamp && firstEvent.timestamp) ? (lastEvent.timestamp - firstEvent.timestamp) : 0;
+            const durationText = durationMs > 0 ? (durationMs / 1000).toFixed(1) + 's' : '-';
+            const firstError = errors[0];
+
+            let r = `h3. 🐛 Bug Report: Session Issue [${sName}]\n\n`;
+            r += `h4. 📱 Session Diagnostics\n`;
+            r += `|| Property || Details ||\n`;
+            r += `| *Session* | ${sName} |\n`;
+            r += `| *Duration* | ${durationText} (${total} total transactions) |\n`;
+            r += `| *Errors* | ${errors.length > 0 ? '{color:red}*' + errors.length + ' Failed Request(s)*{color}' : '{color:green}*No Network Errors*{color}'} |\n\n`;
+
+            r += `h4. ⏱️ Chronological Session Timeline\n`;
+            events.forEach((e, idx) => {
+                const isErr = (e.statusCode && e.statusCode >= 400) || !!e.error;
+                const statusStr = e.statusCode ? `${e.statusCode} ${e.statusMessage || ''}` : (e.error ? 'FAILED' : 'OK');
+                const durVal = (e.timing && e.timing.totalMs) || (e.timing && e.timing.endTimestamp && e.timing.startTimestamp ? e.timing.endTimestamp - e.timing.startTimestamp : 0);
+                const rootTag = isErr && idx === events.findIndex(x => (x.statusCode && x.statusCode >= 400) || !!x.error) ? ' ❌ *[ROOT CAUSE]*' : '';
+
+                r += `# (/) {{${e.method || 'GET'} ${e.path || e.url}}} -> ${isErr ? '{color:red}*' : '{color:green}*'}${statusStr}${isErr ? '*{color}' : '*{color}'} (${durVal} ms)${rootTag}\n`;
+            });
+
+            if (firstError) {
+                r += `\nh4. 💥 Root Cause / Failing Request Details\n`;
+                r += `* *Endpoint:* {color:red}*${firstError.method} ${firstError.path || firstError.url}*{color}\n`;
+                r += `* *Status:* ${firstError.statusCode || 'FAILED'} ${firstError.statusMessage || ''}\n`;
+                r += `*cURL Command:*\n{code:bash}\ncurl -X ${firstError.method || 'GET'} '${firstError.url}'`;
+                if (firstError.requestHeaders) {
+                    for (const k in firstError.requestHeaders) {
+                        r += ` \\\n  -H '${k}: ${Array.isArray(firstError.requestHeaders[k]) ? firstError.requestHeaders[k].join(', ') : firstError.requestHeaders[k]}'`;
+                    }
+                }
+                if (firstError.requestBody && firstError.requestBody.content) {
+                    r += ` \\\n  -d '${firstError.requestBody.content}'`;
+                }
+                r += `\n{code}\n\n`;
+
+                if (firstError.responseBody && firstError.responseBody.content) {
+                    r += `*Server Error Response:*\n{code:json}\n${firstError.responseBody.content}\n{code}\n\n`;
+                }
+            }
+
+            const downloadUrl = window.location.origin + '/api/export/har?sessionId=' + encodeURIComponent(sName);
+            r += `h4. 📎 Attached Artifacts\n`;
+            r += `* *Live Screenshot:* {{attached_screenshot.png}}\n`;
+            r += `* *Complete Session HAR:* [Download ${sName}.har|${downloadUrl}]\n`;
+
+            return r;
+        }
+
+        function generateSessionMarkdownReport(sName, events) {
+            const total = events.length;
+            const errors = events.filter(e => (e.statusCode && e.statusCode >= 400) || !!e.error);
+            const firstEvent = events[0] || {};
+            const lastEvent = events[events.length - 1] || {};
+            const durationMs = (lastEvent.timestamp && firstEvent.timestamp) ? (lastEvent.timestamp - firstEvent.timestamp) : 0;
+            const durationText = durationMs > 0 ? (durationMs / 1000).toFixed(1) + 's' : '-';
+            const firstError = errors[0];
+
+            let r = `### 🐛 Bug Report: Session Issue [${sName}]\n\n`;
+            r += `#### 📱 Session Diagnostics\n`;
+            r += `- **Session**: ${sName}\n`;
+            r += `- **Duration**: ${durationText} (${total} requests)\n`;
+            r += `- **Errors**: ${errors.length} failed\n\n`;
+
+            r += `#### ⏱️ Chronological Session Timeline\n`;
+            events.forEach((e, idx) => {
+                const isErr = (e.statusCode && e.statusCode >= 400) || !!e.error;
+                const statusStr = e.statusCode ? `${e.statusCode} ${e.statusMessage || ''}` : (e.error ? 'FAILED' : 'OK');
+                const durVal = (e.timing && e.timing.totalMs) || (e.timing && e.timing.endTimestamp && e.timing.startTimestamp ? e.timing.endTimestamp - e.timing.startTimestamp : 0);
+                const rootTag = isErr && idx === events.findIndex(x => (x.statusCode && x.statusCode >= 400) || !!x.error) ? ' ❌ **[ROOT CAUSE]**' : '';
+                r += `${idx + 1}. \`${e.method || 'GET'} ${e.path || e.url}\` -> **${statusStr}** (${durVal} ms)${rootTag}\n`;
+            });
+
+            if (firstError) {
+                r += `\n#### 💥 Root Cause / Failing Request\n`;
+                r += `**${firstError.method} ${firstError.path || firstError.url}** (${firstError.statusCode || 'FAILED'})\n\`\`\`bash\ncurl -X ${firstError.method || 'GET'} '${firstError.url}'\n\`\`\`\n`;
+                if (firstError.responseBody && firstError.responseBody.content) {
+                    r += `*Response Body:*\n\`\`\`json\n${firstError.responseBody.content}\n\`\`\`\n\n`;
+                }
+            }
+
+            return r;
+        }
+
+        /* 🚀 1-Click Automated Jira Flow */
+        function openJiraPrefilledTab() {
+            try {
+                saveJiraConfig();
+                const rawDomain = document.getElementById('jira-domain-input').value.trim() || localStorage.getItem('tracea_jira_domain');
+                let jiraDomain = rawDomain;
+
+                if (!jiraDomain) {
+                    jiraDomain = prompt('Enter your Jira Domain (e.g., your-company.atlassian.net):');
+                    if (!jiraDomain) return;
+                    jiraDomain = jiraDomain.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+                    localStorage.setItem('tracea_jira_domain', jiraDomain);
+                    document.getElementById('jira-domain-input').value = jiraDomain;
+                } else {
+                    jiraDomain = jiraDomain.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+                }
+
+                const project = (document.getElementById('jira-project-input').value.trim() || localStorage.getItem('tracea_jira_project') || '').trim();
+                const sessionEvents = allEvents.filter(e => (e.sessionName || e.sessionId || 'Default Session') === currentModalSession);
+                const firstError = sessionEvents.find(e => (e.statusCode && e.statusCode >= 400) || !!e.error);
+
+                // Bug Summary Title
+                const summaryTitle = firstError
+                    ? `[${currentModalSession}] Bug: ${firstError.method} ${firstError.path || firstError.url} returned ${firstError.statusCode || 'Failure'}`
+                    : `[${currentModalSession}] Network Bug Report`;
+
+                // Description
+                const description = generateSessionJiraReport(currentModalSession, sessionEvents);
+
+                // Build universal Jira URL
+                let jiraUrl;
+                if (/^\d+$/.test(project)) {
+                    jiraUrl = `https://${jiraDomain}/secure/CreateIssueDetails!init.jspa?pid=${encodeURIComponent(project)}&issuetype=1&summary=${encodeURIComponent(summaryTitle)}&description=${encodeURIComponent(description)}`;
+                } else if (project) {
+                    jiraUrl = `https://${jiraDomain}/secure/CreateIssue!default.jspa?project=${encodeURIComponent(project)}&summary=${encodeURIComponent(summaryTitle)}&description=${encodeURIComponent(description)}`;
+                } else {
+                    jiraUrl = `https://${jiraDomain}/secure/CreateIssue!default.jspa?summary=${encodeURIComponent(summaryTitle)}&description=${encodeURIComponent(description)}`;
+                }
+
+                // 1. Open Jira window SYNCHRONOUSLY FIRST to guarantee browser never blocks popup
+                window.open(jiraUrl, '_blank');
+
+                // 2. Copy description text to clipboard with fallback
+                copyText(description, '');
+
+                // 3. Stagger file downloads so browser never flags multi-download spam
+                setTimeout(function() {
+                    try { downloadAnnotatedScreenshot(); } catch(e) { console.warn(e); }
+                }, 200);
+
+                setTimeout(function() {
+                    try { downloadModalSessionHar(); } catch(e) { console.warn(e); }
+                }, 500);
+
+                showToast('🚀 Jira opened! Description copied to clipboard, screenshot and HAR downloaded.');
+            } catch(err) {
+                console.error(err);
+                alert('Error opening Jira: ' + err.message);
+            }
+        }
+
+        function copyScreenshotToClipboard(showFeedback = true) {
+            try {
+                canvas.toBlob(function(blob) {
+                    if (blob && navigator.clipboard && navigator.clipboard.write) {
+                        const item = new ClipboardItem({ 'image/png': blob });
+                        navigator.clipboard.write([item])
+                            .then(() => {
+                                if (showFeedback) showToast('Screenshot image copied to clipboard! Press Cmd+V/Ctrl+V in Jira to paste.');
+                            })
+                            .catch(err => {
+                                console.warn('Clipboard write error:', err);
+                                if (showFeedback) showToast('Image clipboard not supported in this browser. Use Save button instead.');
+                            });
+                    } else {
+                        if (showFeedback) showToast('Image clipboard not supported in this browser. Use Save button instead.');
+                    }
+                }, 'image/png');
+            } catch(e) {
+                if (showFeedback) showToast('Use Save Screenshot button to download image.');
+            }
+        }
+
+        function refreshModalScreenshot() {
+            bgImage = new Image();
+            bgImage.src = '/api/device/screenshot?t=' + Date.now();
+            bgImage.onload = function() {
+                canvas.width = bgImage.width;
+                canvas.height = bgImage.height;
+                ctx.drawImage(bgImage, 0, 0);
+                strokeHistory = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+            };
+            bgImage.onerror = function() {
+                canvas.width = 400;
+                canvas.height = 700;
+                ctx.fillStyle = '#171926';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#8E95B8';
+                ctx.font = '14px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('📱 Mobile screen preview', canvas.width / 2, canvas.height / 2);
+                strokeHistory = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+            };
+        }
+
+        function setPenColor(color) {
+            currentColor = color;
+            document.getElementById('pen-red-btn').style.fontWeight = color === '#F07178' ? '700' : '500';
+            document.getElementById('pen-yellow-btn').style.fontWeight = color === '#FFCB6B' ? '700' : '500';
+        }
+
+        function setupCanvasDrawing() {
+            canvas.onmousedown = function(e) {
+                isDrawing = true;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                lastX = (e.clientX - rect.left) * scaleX;
+                lastY = (e.clientY - rect.top) * scaleY;
+            };
+
+            canvas.onmousemove = function(e) {
+                if (!isDrawing) return;
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const currentX = (e.clientX - rect.left) * scaleX;
+                const currentY = (e.clientY - rect.top) * scaleY;
+
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(currentX, currentY);
+                ctx.strokeStyle = currentColor;
+                ctx.lineWidth = currentColor === '#FFCB6B' ? 14 : 8;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+
+                lastX = currentX;
+                lastY = currentY;
+            };
+
+            canvas.onmouseup = function() {
+                if (isDrawing) {
+                    isDrawing = false;
+                    strokeHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
+                }
+            };
+            canvas.onmouseleave = function() { isDrawing = false; };
+        }
+
+        function undoCanvasStroke() {
+            if (strokeHistory.length > 1) {
+                strokeHistory.pop();
+                const prevState = strokeHistory[strokeHistory.length - 1];
+                ctx.putImageData(prevState, 0, 0);
+            }
+        }
+
+        function clearCanvasMarkup() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (bgImage.complete && bgImage.naturalWidth > 0) {
+                ctx.drawImage(bgImage, 0, 0);
+            }
+            strokeHistory = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+        }
+
+        function downloadAnnotatedScreenshot() {
+            try {
+                const link = document.createElement('a');
+                link.download = 'tracea_screenshot_' + Date.now() + '.png';
+                link.href = canvas.toDataURL('image/png');
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => document.body.removeChild(link), 100);
+            } catch(e) {
+                const link = document.createElement('a');
+                link.download = 'tracea_screenshot_' + Date.now() + '.png';
+                link.href = '/api/device/screenshot?t=' + Date.now();
+                document.body.appendChild(link);
+                link.click();
+                setTimeout(() => document.body.removeChild(link), 100);
+            }
+        }
+
+        function downloadModalSessionHar() {
+            if (!currentModalSession) return;
+            const link = document.createElement('a');
+            link.download = 'tracea_session_' + Date.now() + '.har';
+            link.href = '/api/export/har?sessionId=' + encodeURIComponent(currentModalSession);
+            document.body.appendChild(link);
+            link.click();
+            setTimeout(() => document.body.removeChild(link), 100);
+        }
+
+        function copyModalMarkdown() {
+            const text = document.getElementById('modal-markdown-preview').textContent;
+            copyText(text, 'Bug description copied to clipboard!');
+        }
+
+        // Productivity Actions
+        function copyCurlCommand() {
+            if (!selectedEvent) return;
+            const e = selectedEvent;
+            let curl = 'curl -X ' + (e.method || 'GET') + ' \'' + e.url + '\'';
+            if (e.requestHeaders) {
+                for (const k in e.requestHeaders) {
+                    const v = e.requestHeaders[k];
+                    curl += ' \\\n  -H \'' + k + ': ' + (Array.isArray(v) ? v.join(', ') : v) + '\'';
+                }
+            }
+            if (e.requestBody && e.requestBody.content) {
+                curl += ' \\\n  -d \'' + e.requestBody.content.replace(/'/g, "\\'") + '\'';
+            }
+            copyText(curl, 'cURL command copied to clipboard!');
+        }
+
+        function downloadSingleHar() {
+            if (!selectedEvent) return;
+            window.open('/api/export/har?id=' + selectedEvent.id, '_blank');
+        }
+
+        function exportFullHar() {
+            window.open('/api/export/har', '_blank');
+        }
+
+        function clearAllRequests() {
+            if (!confirm('Clear all captured network traffic?')) return;
+            fetch('/api/events', { method: 'DELETE' })
+                .then(() => {
+                    allEvents = [];
+                    selectedEvent = null;
+                    document.getElementById('empty-inspector-view').style.display = 'flex';
+                    document.getElementById('active-inspector-view').style.display = 'none';
+                    updateSessionDropdown();
+                    renderList();
+                    showToast('Traffic cleared');
+                })
+                .catch(e => console.error(e));
+        }
+
+        function copyText(text, successMsg) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    if (successMsg) showToast(successMsg);
+                }).catch(() => fallbackCopyText(text, successMsg));
+            } else {
+                fallbackCopyText(text, successMsg);
+            }
+        }
+
+        function fallbackCopyText(text, successMsg) {
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                if (successMsg) showToast(successMsg);
+            } catch(e) {
+                console.error('Fallback copy failed', e);
+            }
+        }
+
+        function formatBytes(bytes) {
+            if (!bytes || bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        function escapeBackticks(str) {
+            if (!str) return '';
+            return String(str).replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/\$/g, '\\$');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 4000);
+        }
+
+        window.onload = initWebSocket;
+    </script>
+</body>
+</html>

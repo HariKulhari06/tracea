@@ -119,6 +119,33 @@ class DemoApiService {
         return executeRequest(request)
     }
 
+    suspend fun uploadMultipart(): Result<String> {
+        val multipartBody = okhttp3.MultipartBody.Builder()
+            .setType(okhttp3.MultipartBody.FORM)
+            .addFormDataPart("userId", "1042")
+            .addFormDataPart("title", "User Avatar Upload")
+            .addFormDataPart("description", "Tracea multipart upload test")
+            .addFormDataPart(
+                "avatar",
+                "avatar.png",
+                "FAKE_PNG_BINARY_HEADER_DATA_TRACEA_TEST".toByteArray().toRequestBody("image/png".toMediaType())
+            )
+            .build()
+
+        val request = Request.Builder()
+            .url("https://postman-echo.com/post")
+            .post(multipartBody)
+            .build()
+        return executeRequest(request)
+    }
+
+    suspend fun downloadImage(): Result<String> {
+        val request = Request.Builder()
+            .url("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png")
+            .build()
+        return executeRequest(request)
+    }
+
     suspend fun manualCapture() {
         val call = Tracea.startRequest("GET", "https://api.example.com/manual-test")
         call.requestHeaders(mapOf("Accept" to "application/json"))
@@ -130,3 +157,4 @@ class DemoApiService {
         )
     }
 }
+

@@ -11,22 +11,26 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import androidx.compose.material.icons.filled.Laptop
 import com.hari.tracea.ui.screens.detail.RequestDetailScreen
 import com.hari.tracea.ui.screens.network.NetworkListScreen
 import com.hari.tracea.ui.screens.settings.SettingsScreen
 import com.hari.tracea.ui.screens.timeline.TimelineScreen
 import com.hari.tracea.ui.screens.mocks.MockRulesScreen
+import com.hari.tracea.ui.screens.web.WebDashboardScreen
 import kotlinx.serialization.Serializable
 
 @Serializable object NetworkRoute
 @Serializable data class RequestDetailRoute(val eventId: String)
 @Serializable object TimelineRoute
 @Serializable object MocksRoute
+@Serializable object WebDashboardRoute
 @Serializable object SettingsRoute
 
 enum class DebuggerTab(val label: String, val icon: ImageVector) {
     NETWORK("Network", Icons.Default.List),
-    MOCKS("Mocks", Icons.Default.Tune)
+    MOCKS("Mocks", Icons.Default.Tune),
+    WEB("PC Web", Icons.Default.Laptop)
 }
 
 @Composable
@@ -51,6 +55,9 @@ fun DebuggerNavHost(navController: NavHostController) {
         }
         composable<MocksRoute> {
             MockRulesScreen()
+        }
+        composable<WebDashboardRoute> {
+            WebDashboardScreen()
         }
         composable<SettingsRoute> {
             SettingsScreen()
