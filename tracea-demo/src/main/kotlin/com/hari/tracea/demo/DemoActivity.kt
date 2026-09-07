@@ -152,6 +152,20 @@ fun DemoScreen(apiService: DemoApiService) {
                     showToast(if (result.isSuccess) "Redacted Headers Success" else "Redacted Headers Failed")
                 }
             }
+
+            DemoButton("12. POST Multipart Form-Data (File Upload)") {
+                scope.launch {
+                    val result = apiService.uploadMultipart()
+                    showToast(if (result.isSuccess) "Multipart Upload Success" else "Multipart Upload Failed")
+                }
+            }
+
+            DemoButton("13. GET Image Download (PNG Binary)") {
+                scope.launch {
+                    val result = apiService.downloadImage()
+                    showToast(if (result.isSuccess) "Image Download Success" else "Image Download Failed")
+                }
+            }
             
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             
@@ -159,23 +173,27 @@ fun DemoScreen(apiService: DemoApiService) {
                 onClick = {
                     scope.launch {
                         apiService.getUsers()
-                        kotlinx.coroutines.delay(300)
+                        kotlinx.coroutines.delay(200)
                         apiService.postLogin()
-                        kotlinx.coroutines.delay(300)
+                        kotlinx.coroutines.delay(200)
                         apiService.putProfile()
-                        kotlinx.coroutines.delay(300)
+                        kotlinx.coroutines.delay(200)
                         apiService.deleteItem()
-                        kotlinx.coroutines.delay(300)
+                        kotlinx.coroutines.delay(200)
                         apiService.get404()
-                        kotlinx.coroutines.delay(300)
+                        kotlinx.coroutines.delay(200)
                         apiService.get500()
-                        kotlinx.coroutines.delay(300)
+                        kotlinx.coroutines.delay(200)
                         apiService.largeResponse()
-                        kotlinx.coroutines.delay(300)
+                        kotlinx.coroutines.delay(200)
                         apiService.postWithBody()
-                        kotlinx.coroutines.delay(300)
+                        kotlinx.coroutines.delay(200)
+                        apiService.uploadMultipart()
+                        kotlinx.coroutines.delay(200)
+                        apiService.downloadImage()
+                        kotlinx.coroutines.delay(200)
                         apiService.manualCapture()
-                        kotlinx.coroutines.delay(300)
+                        kotlinx.coroutines.delay(200)
                         apiService.redactedHeaders()
                         showToast("All sequence calls completed")
                     }

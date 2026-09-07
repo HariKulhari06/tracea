@@ -34,6 +34,8 @@ import com.hari.tracea.ui.navigation.MocksRoute
 import com.hari.tracea.ui.theme.DebuggerTheme
 import com.hari.tracea.ui.theme.LocalDebuggerColors
 
+import com.hari.tracea.ui.navigation.WebDashboardRoute
+
 class TraceaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +83,7 @@ class TraceaActivity : ComponentActivity() {
             val selected = when (tab) {
                 DebuggerTab.NETWORK -> currentDestination?.hasRoute<NetworkRoute>() == true
                 DebuggerTab.MOCKS -> currentDestination?.hasRoute<MocksRoute>() == true
+                DebuggerTab.WEB -> currentDestination?.hasRoute<WebDashboardRoute>() == true
             }
 
             NavigationBarItem(
@@ -89,6 +92,7 @@ class TraceaActivity : ComponentActivity() {
                     val route = when (tab) {
                         DebuggerTab.NETWORK -> NetworkRoute
                         DebuggerTab.MOCKS -> MocksRoute
+                        DebuggerTab.WEB -> WebDashboardRoute
                     }
                     navController.navigate(route) {
                         popUpTo(navController.graph.startDestinationId) { 

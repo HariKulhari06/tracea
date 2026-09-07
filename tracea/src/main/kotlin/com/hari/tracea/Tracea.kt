@@ -60,6 +60,12 @@ object Tracea {
             com.hari.tracea.ui.overlay.FloatingButtonManager.init(app, config)
         }
 
+        // Wire Web Server store & Activity Tracker
+        com.hari.tracea.web.TraceaWebServer.store = _store
+        (context.applicationContext as? android.app.Application)?.let {
+            com.hari.tracea.web.TraceaActivityTracker.register(it)
+        }
+        
         // Start pipeline: collector events -> redaction -> store
         scope.launch {
             _collector.events.collect { event ->
@@ -130,5 +136,29 @@ object Tracea {
         if (initialized && _config.enabled) {
             scope.launch { _store.clear() }
         }
+    }
+
+    /**
+     * Start the embedded Web Dashboard server.
+     */
+    fun startWebServer(context: Context, port: Int = 8080): Boolean {
+        check(initialized) { "Tracea.initialize() must be called first" }
+        return com.hari.tracea.web.TraceaWebServer.start(context, port)
+    }
+
+    /**
+     * Stop the embedded Web Dashboard server.
+     */
+    fun stopWebServer() {
+        if (initialized) {
+            com.hari.tracea.web.TraceaWebServer.stop()
+        }
+    }
+
+    /**
+     * Get the local network URL for the Web Dashboard.
+     */
+    fun getWebDashboardUrl(context: Context): String {
+        return com.hari.tracea.web.TraceaWebServer.getDashboardUrl(context)
     }
 }
