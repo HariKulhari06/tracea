@@ -29,7 +29,7 @@ object Tracea {
     /**
      * Start tracking a manual network request (no-op in release builds).
      */
-    fun startRequest(method: String, url: String): ManualNetworkCall = noOpManualCall
+    fun startRequest(method: String, url: String): ManualNetworkCall? = noOpManualCall
 
     /**
      * Open the Tracea UI (no-op in release builds).

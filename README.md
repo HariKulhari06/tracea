@@ -195,6 +195,69 @@ Mock rules are configured through the in-app Mocking UI and persisted to disk.
 
 ---
 
+## 🌐 Web Dashboard (Browser Inspector)
+
+Tracea ships with a **full-featured browser-based network inspector** that runs directly on your Android device. Open it on your laptop or desktop for a big-screen debugging experience — no proxy, no VPN tunneling, no Chrome DevTools protocol required.
+
+### How to Connect
+
+**Option A — Wi-Fi (same network):**
+
+The dashboard starts automatically from the in-app UI, or programmatically:
+
+```kotlin
+Tracea.startWebServer(context, port = 8080)
+val url = Tracea.getWebDashboardUrl(context)
+// → "http://192.168.1.50:8080"
+```
+
+Open the printed URL on any browser on your laptop.
+
+**Option B — USB Cable (corporate Wi-Fi / VPN):**
+
+If your office Wi-Fi isolates devices, use ADB port forwarding:
+
+```bash
+adb forward tcp:8080 tcp:8080
+```
+
+Then open `http://localhost:8080` on your laptop browser.
+
+### Dashboard Features
+
+| Feature | Description |
+| :--- | :--- |
+| **Real-time WebSocket streaming** | Transactions appear instantly as they happen on the device |
+| **Search & filter** | Filter by URL, host, method, status code chips (2xx, 3xx, 4xx, 5xx, errors) |
+| **Session grouping** | Collapsible session cards with request counts and failure indicators |
+| **Sort options** | Sort by newest, oldest, slowest, largest, or status code |
+| **Collapsible JSON tree viewer** | Syntax-highlighted, line-numbered, expandable/collapsible JSON with copy support |
+| **DevTools timing waterfall** | DNS lookup → TCP connect → TLS handshake → TTFB → download breakdown |
+| **Mock indicator badges** | Requests intercepted by the mock engine are tagged with 🎭 MOCK |
+| **cURL export** | Copy formatted multi-line cURL commands for any request |
+| **HAR export** | Export single request, session, or full traffic as HAR files |
+| **Live device screenshot** | Capture the current app screen directly from the browser |
+| **Canvas annotation tool** | Draw, highlight, and annotate screenshots with undo and color support |
+| **1-Click Jira bug report** | Auto-generates timeline, root-cause cURL, attaches screenshot + HAR, and opens Jira |
+| **Remote clear** | Clear all device network history from the browser |
+
+### Programmatic API
+
+```kotlin
+// Start the web server (default port 8080)
+Tracea.startWebServer(context, port = 8080)
+
+// Get the dashboard URL
+val url = Tracea.getWebDashboardUrl(context)
+
+// Stop the web server
+Tracea.stopWebServer()
+```
+
+> **Note**: In release builds with `tracea-noop`, `startWebServer()` returns `false`, `stopWebServer()` is a no-op, and `getWebDashboardUrl()` returns `""`.
+
+---
+
 ## 🏗️ Architecture
 
 Tracea is built with a clean, modular architecture:

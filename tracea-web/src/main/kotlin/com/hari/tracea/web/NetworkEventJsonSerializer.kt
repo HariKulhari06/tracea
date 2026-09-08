@@ -22,7 +22,7 @@ object NetworkEventJsonSerializer {
             put("url", event.url)
             put("scheme", event.scheme)
             put("host", event.host)
-            if (event.port != null) put("port", event.port!!)
+            event.port?.let { put("port", it) }
             put("path", event.path)
 
             put("queryParameters", buildJsonObject {
@@ -45,7 +45,7 @@ object NetworkEventJsonSerializer {
             if (event.requestContentType != null) put("requestContentType", event.requestContentType)
             put("requestSize", event.requestSize)
 
-            if (event.statusCode != null) put("statusCode", event.statusCode!!)
+            event.statusCode?.let { put("statusCode", it) }
             if (event.statusMessage != null) put("statusMessage", event.statusMessage)
 
             put("responseHeaders", buildJsonObject {

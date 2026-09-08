@@ -147,7 +147,7 @@ class DemoApiService {
     }
 
     suspend fun manualCapture() {
-        val call = Tracea.startRequest("GET", "https://api.example.com/manual-test")
+        val call = Tracea.startRequest("GET", "https://api.example.com/manual-test") ?: return
         call.requestHeaders(mapOf("Accept" to "application/json"))
         delay(200)  // Simulate network delay
         call.response(

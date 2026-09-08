@@ -11,8 +11,8 @@ object TraceaWebDashboardAssets {
     private var cachedHtml: String? = null
 
     fun getDashboardHtml(appName: String = "Tracea", appVersion: String = "1.1.0"): String {
-        if (cachedHtml == null) {
-            cachedHtml = try {
+        val html = cachedHtml ?: run {
+            val loaded = try {
                 val inputStream = javaClass.classLoader?.getResourceAsStream("tracea_dashboard.html")
                     ?: javaClass.getResourceAsStream("/tracea_dashboard.html")
                 if (inputStream != null) {
@@ -23,8 +23,10 @@ object TraceaWebDashboardAssets {
             } catch (e: Exception) {
                 getFallbackHtml()
             }
+            cachedHtml = loaded
+            loaded
         }
-        return cachedHtml!!.replace("Tracea Web Inspector", "$appName Web Inspector (v$appVersion)")
+        return html.replace("Tracea Web Inspector", "$appName Web Inspector (v$appVersion)")
     }
 
     private fun getFallbackHtml(): String = """
