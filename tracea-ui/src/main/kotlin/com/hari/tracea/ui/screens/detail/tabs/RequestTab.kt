@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.sp
 import com.hari.tracea.core.model.BodyData
 import com.hari.tracea.core.model.NetworkEvent
 import com.hari.tracea.ui.components.CodeBlock
+import com.hari.tracea.ui.components.CookieParser
+import com.hari.tracea.ui.components.CookiesSection
 import com.hari.tracea.ui.components.HeadersSection
 import com.hari.tracea.ui.components.JsonSyntaxHighlighter
 import com.hari.tracea.ui.components.SectionHeader
@@ -86,6 +88,22 @@ fun RequestTab(
                 clipboardManager.setText(AnnotatedString(text))
             }
         )
+
+        // Request Cookies
+        val cookieValues = event.requestHeaders
+            .filter { it.key.equals("Cookie", ignoreCase = true) }
+            .values.flatten()
+        if (cookieValues.isNotEmpty()) {
+            val parsedCookies = CookieParser.parseRequestCookies(cookieValues)
+            CookiesSection(
+                title = "Request Cookies",
+                cookies = parsedCookies,
+                onCopy = {
+                    val text = cookieValues.joinToString("; ")
+                    clipboardManager.setText(AnnotatedString(text))
+                }
+            )
+        }
 
         // Request Body
         event.requestBody?.let { body ->

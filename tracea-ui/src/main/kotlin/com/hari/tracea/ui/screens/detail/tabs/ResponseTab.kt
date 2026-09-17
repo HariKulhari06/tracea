@@ -20,6 +20,8 @@ import com.hari.tracea.core.model.BodyData
 import com.hari.tracea.core.model.NetworkEvent
 import com.hari.tracea.core.util.SizeFormatter
 import com.hari.tracea.ui.components.CodeBlock
+import com.hari.tracea.ui.components.CookieParser
+import com.hari.tracea.ui.components.CookiesSection
 import com.hari.tracea.ui.components.HeadersSection
 import com.hari.tracea.ui.components.JsonSyntaxHighlighter
 import com.hari.tracea.ui.components.SectionHeader
@@ -86,14 +88,20 @@ fun ResponseTab(
             }
         )
 
-        // Cookies
-        val cookieHeaders = event.responseHeaders.filter { it.key.equals("Set-Cookie", ignoreCase = true) }
-        if (cookieHeaders.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                SectionHeader(title = "Cookies")
-                val cookieText = cookieHeaders.values.flatten().joinToString("\n")
-                CodeBlock(content = cookieText)
-            }
+        // Response Cookies
+        val setCookieValues = event.responseHeaders
+            .filter { it.key.equals("Set-Cookie", ignoreCase = true) }
+            .values.flatten()
+        if (setCookieValues.isNotEmpty()) {
+            val parsedCookies = CookieParser.parseResponseCookies(setCookieValues)
+            CookiesSection(
+                title = "Response Cookies",
+                cookies = parsedCookies,
+                onCopy = {
+                    val text = setCookieValues.joinToString("\n")
+                    clipboardManager.setText(AnnotatedString(text))
+                }
+            )
         }
 
         // Response Body
