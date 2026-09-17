@@ -8,7 +8,8 @@ data class TraceaConfig(
     val bodyCaptureConfig: BodyCaptureConfig = BodyCaptureConfig(),
     val storageConfig: StorageConfig = StorageConfig(),
     val redactionConfig: RedactionConfig = RedactionConfig(),
-    val showFloatingButton: Boolean = false
+    val showFloatingButton: Boolean = false,
+    val enableWebDashboard: Boolean = false
 )
 
 data class BodyCaptureConfig(

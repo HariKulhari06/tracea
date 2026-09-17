@@ -79,7 +79,13 @@ class TraceaActivity : ComponentActivity() {
     @Composable
     private fun RowScope.NavigationItems(currentDestination: NavDestination?, navController: NavHostController) {
         val colors = LocalDebuggerColors.current
-        DebuggerTab.entries.forEach { tab ->
+        val tabs = DebuggerTab.entries.filter { tab ->
+            when (tab) {
+                DebuggerTab.WEB -> TraceaServiceLocator.config?.enableWebDashboard == true
+                else -> true
+            }
+        }
+        tabs.forEach { tab ->
             val selected = when (tab) {
                 DebuggerTab.NETWORK -> currentDestination?.hasRoute<NetworkRoute>() == true
                 DebuggerTab.MOCKS -> currentDestination?.hasRoute<MocksRoute>() == true
