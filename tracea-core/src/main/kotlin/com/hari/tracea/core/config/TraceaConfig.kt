@@ -9,5 +9,5 @@ data class TraceaConfig(
     val storageConfig: StorageConfig = StorageConfig(),
     val redactionConfig: RedactionConfig = RedactionConfig(),
     val showFloatingButton: Boolean = true,
-    val enableWebDashboard: Boolean = true
+    val enableWebDashboard: Boolean = false
 )
