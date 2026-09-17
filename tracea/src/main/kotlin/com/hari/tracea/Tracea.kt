@@ -65,10 +65,12 @@ object Tracea {
             com.hari.tracea.ui.overlay.FloatingButtonManager.init(app, config)
         }
 
-        // Wire Web Server store & Activity Tracker
-        com.hari.tracea.web.TraceaWebServer.store = _store
-        (context.applicationContext as? android.app.Application)?.let {
-            com.hari.tracea.web.TraceaActivityTracker.register(it)
+        // Wire Web Server store & Activity Tracker (only if web dashboard enabled)
+        if (config.enableWebDashboard) {
+            com.hari.tracea.web.TraceaWebServer.store = _store
+            (context.applicationContext as? android.app.Application)?.let {
+                com.hari.tracea.web.TraceaActivityTracker.register(it)
+            }
         }
         
         // Start pipeline: collector events -> redaction -> store
@@ -165,6 +167,10 @@ object Tracea {
             Log.w(TAG, "Tracea.initialize() was not called. Cannot start web server.")
             return false
         }
+        if (!_config.enableWebDashboard) {
+            Log.d(TAG, "Web dashboard is disabled via config. Call initialize() with enableWebDashboard = true to enable.")
+            return false
+        }
         return com.hari.tracea.web.TraceaWebServer.start(context, port)
     }
 
@@ -172,7 +178,7 @@ object Tracea {
      * Stop the embedded Web Dashboard server.
      */
     fun stopWebServer() {
-        if (initialized) {
+        if (initialized && _config.enableWebDashboard) {
             com.hari.tracea.web.TraceaWebServer.stop()
         }
     }
@@ -181,6 +187,7 @@ object Tracea {
      * Get the local network URL for the Web Dashboard.
      */
     fun getWebDashboardUrl(context: Context): String {
+        if (!initialized || !_config.enableWebDashboard) return ""
         return com.hari.tracea.web.TraceaWebServer.getDashboardUrl(context)
     }
 }
