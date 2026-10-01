@@ -50,7 +50,7 @@ fun TimelineItem(
     val timeFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
     val formattedTime = timeFormat.format(Date(event.timestamp))
 
-    val dotColor = colors.statusColor(event.statusCode ?: 0)
+    val dotColor = colors.methodColor(event.method)
     val outlineColor = colors.outline.copy(alpha = 0.5f)
 
     // Calculate waterfall timeline ratios
@@ -59,8 +59,10 @@ fun TimelineItem(
         ((event.timestamp - sessionStart).toFloat() / sessionDuration).coerceIn(0f, 1f)
     } else 0f
 
+    val maxDur = (1f - startOffsetPercent).coerceAtLeast(0.01f)
+    val minDur = 0.01f.coerceAtMost(maxDur)
     val durationPercent = if (sessionDuration > 0L) {
-        (totalMs.toFloat() / sessionDuration).coerceIn(0.02f, 1f - startOffsetPercent)
+        (totalMs.toFloat() / sessionDuration).coerceIn(minDur, maxDur)
     } else 0.05f
 
     val remainingPercent = (1f - startOffsetPercent - durationPercent).coerceIn(0f, 1f)
@@ -77,10 +79,11 @@ fun TimelineItem(
         // Left Column: Timestamp
         Text(
             text = formattedTime,
-            color = colors.onSurfaceVariant.copy(alpha = 0.7f),
+            color = colors.onSurface,
             fontSize = 11.sp,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.width(76.dp)
+            modifier = Modifier.width(82.dp)
         )
 
         // Center Column: Connecting Line + Circle Dot
@@ -207,7 +210,7 @@ fun TimelineItem(
                                         modifier = Modifier
                                             .weight(dnsWeight)
                                             .fillMaxHeight()
-                                            .background(androidx.compose.ui.graphics.Color(0xFFFFC107)) // Yellow: Connect
+                                            .background(androidx.compose.ui.graphics.Color(0xFFFFCC00)) // Yellow: Connect
                                     )
                                 }
                                 if (waitWeight > 0f) {
@@ -215,7 +218,7 @@ fun TimelineItem(
                                         modifier = Modifier
                                             .weight(waitWeight)
                                             .fillMaxHeight()
-                                            .background(androidx.compose.ui.graphics.Color(0xFF4CAF50)) // Green: TTFB/Wait
+                                            .background(androidx.compose.ui.graphics.Color(0xFF4EC9B0)) // Green: TTFB/Wait
                                     )
                                 }
                                 if (downloadWeight > 0f) {
@@ -223,7 +226,7 @@ fun TimelineItem(
                                         modifier = Modifier
                                             .weight(downloadWeight)
                                             .fillMaxHeight()
-                                            .background(androidx.compose.ui.graphics.Color(0xFF2196F3)) // Blue: Download
+                                            .background(androidx.compose.ui.graphics.Color(0xFF569CD6)) // Blue: Download
                                     )
                                 }
                             } else {

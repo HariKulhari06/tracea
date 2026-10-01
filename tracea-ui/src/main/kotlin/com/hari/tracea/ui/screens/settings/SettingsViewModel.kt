@@ -71,6 +71,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         prefs.edit().putBoolean("show_get_body", enabled).apply()
     }
 
+    val eventCount: Int get() = 0  // TODO: bind to actual store
+    val storageUsage: String get() = "0 KB"  // TODO: bind to actual store
+
     fun clearAllData() {
         viewModelScope.launch {
             store?.clear()

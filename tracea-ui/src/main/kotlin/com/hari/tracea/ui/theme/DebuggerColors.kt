@@ -5,32 +5,51 @@ import androidx.compose.ui.graphics.Color
 import com.hari.tracea.core.model.HttpMethod
 
 data class DebuggerColorScheme(
-    val surface: Color = Color(0xFF0F111A),
-    val surfaceVariant: Color = Color(0xFF1E202E),
-    val surfaceContainer: Color = Color(0xFF25283B),
-    val onSurface: Color = Color(0xFFE2E4F3),
-    val onSurfaceVariant: Color = Color(0xFF9499B8),
-    val primary: Color = Color(0xFF7E97FF),
-    val primaryContainer: Color = Color(0xFF2D3561),
-    val onPrimaryContainer: Color = Color(0xFFD6DFFF),
-    val outline: Color = Color(0xFF30344D),
-    val sectionHeader: Color = Color(0xFFA6ACCD),
-    val methodGet: Color = Color(0xFF4FD6BE),
-    val methodPost: Color = Color(0xFF7E97FF),
-    val methodPut: Color = Color(0xFFFFCB6B),
-    val methodDelete: Color = Color(0xFFF07178),
-    val methodPatch: Color = Color(0xFFC792EA),
-    val status2xx: Color = Color(0xFF4FD6BE),
-    val status2xxContainer: Color = Color(0xFF1B3D37),
-    val status3xx: Color = Color(0xFF82AAFF),
-    val status3xxContainer: Color = Color(0xFF253352),
-    val status4xx: Color = Color(0xFFF07178),
-    val status4xxContainer: Color = Color(0xFF45272E),
-    val status5xx: Color = Color(0xFFFF5370),
-    val status5xxContainer: Color = Color(0xFF4A1F26),
-    val liveDot: Color = Color(0xFF4FD6BE),
-    val errorDot: Color = Color(0xFFF07178)
+    // Surface hierarchy — matches iOS exactly
+    val background: Color = Color(0xFF0F111A),     // Deepest dark: scaffold, screen background
+    val surface: Color = Color(0xFF1A1D2E),         // Cards, panels, rows, headers
+    val surfaceVariant: Color = Color(0xFF242842),   // Sub-panels, button backgrounds, inputs, tags
+
+    // Text hierarchy — matches iOS exactly
+    val onBackground: Color = Color(0xFFE0E0E0),    // Primary headings, prominent body text, URLs
+    val onSurface: Color = Color(0xFFB0B0B0),        // Secondary labels, timestamps, metadata keys
+    val onSurfaceVariant: Color = Color(0xFF808080), // Icons, placeholders, subtle borders, footnotes
+
+    // Accent
+    val primary: Color = Color(0xFF7E97FF),          // Accents, links, active icons, selected buttons
+
+    // Borders
+    val divider: Color = Color(0xFF2A2D3E),          // Card borders, horizontal separators
+
+    // HTTP Method Colors — VS Code Dark theme (matches iOS)
+    val methodGet: Color = Color(0xFF4EC9B0),        // GET — teal
+    val methodPost: Color = Color(0xFF7E97FF),       // POST — blue (same as primary)
+    val methodPut: Color = Color(0xFFDCDC8B),        // PUT — pale yellow
+    val methodDelete: Color = Color(0xFFF44747),     // DELETE — brick red
+    val methodPatch: Color = Color(0xFFC586C0),      // PATCH — dusty rose
+
+    // HTTP Status Colors — VS Code Dark theme (matches iOS)
+    val status2xx: Color = Color(0xFF4EC9B0),        // Success — teal (same as GET)
+    val status3xx: Color = Color(0xFF569CD6),        // Redirect — steel blue
+    val status4xx: Color = Color(0xFFCE9178),        // Client error — terracotta
+    val status5xx: Color = Color(0xFFF44747),        // Server error — red (same as DELETE)
+    val statusError: Color = Color(0xFFF44747)       // Network errors — red
 ) {
+    // Backward-compatible aliases — map old token names to iOS-aligned values
+    val outline: Color get() = divider
+    val surfaceContainer: Color get() = surfaceVariant
+    val sectionHeader: Color get() = onSurfaceVariant
+    val primaryContainer: Color get() = surfaceVariant
+    val onPrimaryContainer: Color get() = onBackground
+    val liveDot: Color get() = status2xx
+    val errorDot: Color get() = statusError
+    val status2xxContainer: Color get() = surface
+    val status3xxContainer: Color get() = surface
+    val status4xxContainer: Color get() = surface
+    val status5xxContainer: Color get() = surface
+
+    fun statusContainerColor(statusCode: Int): Color = surface
+
     fun methodColor(method: HttpMethod): Color = when(method) {
         HttpMethod.GET -> methodGet
         HttpMethod.POST -> methodPost
@@ -46,14 +65,6 @@ data class DebuggerColorScheme(
         in 400..499 -> status4xx
         in 500..599 -> status5xx
         else -> onSurfaceVariant
-    }
-
-    fun statusContainerColor(statusCode: Int): Color = when(statusCode) {
-        in 200..299 -> status2xxContainer
-        in 300..399 -> status3xxContainer
-        in 400..499 -> status4xxContainer
-        in 500..599 -> status5xxContainer
-        else -> surfaceContainer
     }
 }
 

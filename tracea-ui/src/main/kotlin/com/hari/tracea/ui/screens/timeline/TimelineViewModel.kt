@@ -12,7 +12,16 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import com.hari.tracea.core.util.SizeFormatter
 import kotlinx.coroutines.launch
+
+data class TimelineStats(
+    val totalRequests: Int = 0,
+    val formattedDuration: String = "00:00:00",
+    val slowestFormatted: String = "0 ms",
+    val errorCount: Int = 0,
+    val totalDataTransfer: String = "0 B"
+)
 
 data class SessionStats(
     val totalRequests: Int = 0,
@@ -46,7 +55,7 @@ class TimelineViewModel : ViewModel() {
 
             val matchesFilter = when (filter) {
                 StatusFilter.ALL -> true
-                StatusFilter.SUCCESS_2XX -> (event.statusCode ?: 0) in 200..299
+                StatusFilter.SUCCESS, StatusFilter.SUCCESS_2XX -> (event.statusCode ?: 0) in 200..299
                 StatusFilter.REDIRECT_3XX -> (event.statusCode ?: 0) in 300..399
                 StatusFilter.CLIENT_ERROR_4XX -> (event.statusCode ?: 0) in 400..499
                 StatusFilter.SERVER_ERROR_5XX -> (event.statusCode ?: 0) in 500..599
@@ -77,6 +86,40 @@ class TimelineViewModel : ViewModel() {
             SessionStats(totalRequests = total, formattedDuration = durationStr, slowestFormatted = slowestStr)
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, SessionStats())
+
+    val timelineStats: StateFlow<TimelineStats> = (store?.getAll() ?: MutableStateFlow(emptyList())).map { events ->
+        if (events.isEmpty()) {
+            TimelineStats()
+        } else {
+            val total = events.size
+            val first = events.minOf { it.timestamp }
+            val last = events.maxOf { it.timing.endTimestamp ?: (it.timestamp + (it.timing.totalMs ?: 0L)) }
+            val diff = maxOf(0L, last - first)
+            val hours = diff / 3600000
+            val minutes = (diff % 3600000) / 60000
+            val seconds = (diff % 60000) / 1000
+            val durationStr = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+
+            val slowestMs = events.mapNotNull { it.timing.totalMs }.maxOrNull()
+            val slowestStr = slowestMs?.let { DurationFormatter.format(it) } ?: "0 ms"
+
+            val errors = events.count { event ->
+                val code = event.statusCode ?: 0
+                code in 400..599 || event.error != null
+            }
+
+            val totalBytes = events.sumOf { it.requestSize + it.responseSize }
+            val dataStr = SizeFormatter.format(totalBytes)
+
+            TimelineStats(
+                totalRequests = total,
+                formattedDuration = durationStr,
+                slowestFormatted = slowestStr,
+                errorCount = errors,
+                totalDataTransfer = dataStr
+            )
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, TimelineStats())
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query

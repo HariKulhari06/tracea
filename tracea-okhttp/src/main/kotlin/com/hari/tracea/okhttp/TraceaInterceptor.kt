@@ -40,6 +40,12 @@ public class TraceaInterceptor(
         }
 
         val request = chain.request()
+
+        // Domain filtering check
+        val activeFilter = com.hari.tracea.core.config.DomainFilterConfig.activeConfig ?: config.domainFilterConfig
+        if (!activeFilter.shouldCaptureHost(request.url.host)) {
+            return chain.proceed(request)
+        }
         val eventId = UUID.randomUUID().toString()
         val startNs = System.nanoTime()
         val startMs = System.currentTimeMillis()

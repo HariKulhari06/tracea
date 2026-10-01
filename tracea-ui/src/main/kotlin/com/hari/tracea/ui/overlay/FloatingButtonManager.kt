@@ -107,10 +107,20 @@ object FloatingButtonManager : Application.ActivityLifecycleCallbacks {
                     FloatingDebugButton(
                         requestCount = count,
                         onDrag = { dx, dy ->
+                            this@apply.animate().cancel()
                             lastOffsetX = (lastOffsetX + dx).coerceIn(0f, maxX)
                             lastOffsetY = (lastOffsetY + dy).coerceIn(0f, maxY)
                             translationX = lastOffsetX
                             translationY = lastOffsetY
+                        },
+                        onDragEnd = {
+                            val targetX = if (lastOffsetX < maxX / 2) 16f else maxX - 16f
+                            lastOffsetX = targetX
+                            this@apply.animate()
+                                .translationX(targetX)
+                                .setInterpolator(android.view.animation.OvershootInterpolator(0.72f))
+                                .setDuration(350)
+                                .start()
                         },
                         onClick = {
                             showTracea(activity)

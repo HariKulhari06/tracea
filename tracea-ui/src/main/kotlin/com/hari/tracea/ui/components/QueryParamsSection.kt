@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -41,18 +40,12 @@ import com.hari.tracea.ui.theme.LocalDebuggerColors
 import kotlinx.coroutines.delay
 
 @Composable
-fun HeadersSection(
-    title: String,
-    headers: Map<String, List<String>>,
-    modifier: Modifier = Modifier,
-    onCopy: (() -> Unit)? = null
+fun QueryParamsSection(
+    queryParameters: Map<String, List<String>>,
+    modifier: Modifier = Modifier
 ) {
-    if (headers.isEmpty()) return
-
     val colors = LocalDebuggerColors.current
     val clipboardManager = LocalClipboardManager.current
-    
-    var expanded by remember { mutableStateOf(false) }
     var isAllCopied by remember { mutableStateOf(false) }
     var copiedKey by remember { mutableStateOf<String?>(null) }
 
@@ -82,7 +75,6 @@ fun HeadersSection(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(colors.surface)
             .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
@@ -96,14 +88,14 @@ fun HeadersSection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = title,
+                text = "Query Parameters",
                 color = colors.onSurface,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Text(
-                text = "${headers.size}",
+                text = "${queryParameters.size}",
                 color = colors.onSurfaceVariant,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
@@ -116,30 +108,16 @@ fun HeadersSection(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            if (headers.size > 5) {
-                Text(
-                    text = if (expanded) "Show Less" else "View All",
-                    color = colors.primary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .clickable { expanded = !expanded }
-                        .padding(horizontal = 4.dp, vertical = 4.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
                     .background(copyAllBg)
                     .clickable {
-                        val allText = headers.entries.joinToString("\n") { (k, vals) -> 
-                            "$k: ${vals.joinToString(", ")}"
-                        }
+                        val allText = queryParameters.entries
+                            .flatMap { (k, vals) -> vals.map { "$k=$it" } }
+                            .joinToString("&")
                         clipboardManager.setText(AnnotatedString(allText))
                         isAllCopied = true
-                        onCopy?.invoke()
                     }
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -152,7 +130,7 @@ fun HeadersSection(
                     modifier = Modifier.size(12.dp)
                 )
                 Text(
-                    text = if (isAllCopied) "Copied!" else "Copy All",
+                    text = if (isAllCopied) "Copied All!" else "Copy All",
                     color = copyAllColor,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
@@ -162,18 +140,11 @@ fun HeadersSection(
 
         HorizontalDivider(color = colors.outline.copy(alpha = 0.4f), thickness = 0.5.dp)
 
-        val displayHeaders = if (expanded || headers.size <= 5) {
-            headers
-        } else {
-            headers.entries.take(5).associate { it.key to it.value }
-        }
-
-        // Header Rows
-        val entriesList = displayHeaders.entries.toList()
+        // Query Param Rows
+        val sortedKeys = queryParameters.keys.sorted()
         Column(modifier = Modifier.fillMaxWidth()) {
-            entriesList.forEachIndexed { index, entry ->
-                val key = entry.key
-                val vals = entry.value
+            sortedKeys.forEachIndexed { index, key ->
+                val vals = queryParameters[key] ?: emptyList()
                 val valString = vals.joinToString(", ")
                 val isRowCopied = copiedKey == key
 
@@ -190,7 +161,7 @@ fun HeadersSection(
                     ) {
                         Text(
                             text = key,
-                            color = colors.onSurfaceVariant, // Use secondary color for header keys
+                            color = Color(0xFF4EC9B0),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             fontFamily = FontFamily.Monospace
@@ -198,12 +169,12 @@ fun HeadersSection(
 
                         Icon(
                             imageVector = if (isRowCopied) Icons.Default.Check else Icons.Default.ContentCopy,
-                            contentDescription = "Copy header",
+                            contentDescription = "Copy parameter",
                             tint = if (isRowCopied) Color(0xFF4CD964) else colors.onSurfaceVariant,
                             modifier = Modifier
                                 .size(14.dp)
                                 .clickable {
-                                    clipboardManager.setText(AnnotatedString("$key: $valString"))
+                                    clipboardManager.setText(AnnotatedString("$key=$valString"))
                                     copiedKey = key
                                 }
                         )
@@ -220,7 +191,7 @@ fun HeadersSection(
                     }
                 }
 
-                if (index < entriesList.size - 1) {
+                if (index < sortedKeys.size - 1) {
                     HorizontalDivider(
                         color = colors.outline.copy(alpha = 0.25f),
                         thickness = 0.5.dp,

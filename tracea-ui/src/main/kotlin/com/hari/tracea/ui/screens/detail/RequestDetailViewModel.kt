@@ -10,10 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 enum class DetailTab(val label: String) {
-    OVERVIEW("OVERVIEW"),
-    REQUEST("REQUEST"),
-    RESPONSE("RESPONSE"),
-    TIMING("TIMING")
+    OVERVIEW("Overview"),
+    REQUEST("Request"),
+    RESPONSE("Response"),
+    TIMING("Timing")
 }
 
 enum class BodyDisplayMode { RAW, PRETTY }

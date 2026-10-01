@@ -9,13 +9,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 fun DebuggerTheme(content: @Composable () -> Unit) {
     val colors = DebuggerColorScheme()
     val materialColors = darkColorScheme(
-        background = colors.surface,
-        surface = colors.surface,
+        background = colors.background,
+        surface = colors.background,
         surfaceVariant = colors.surfaceVariant,
-        onSurface = colors.onSurface,
-        onSurfaceVariant = colors.onSurfaceVariant,
+        onBackground = colors.onBackground,
+        onSurface = colors.onBackground,
+        onSurfaceVariant = colors.onSurface,
         primary = colors.primary,
-        outline = colors.outline
+        outline = colors.divider
     )
 
     CompositionLocalProvider(LocalDebuggerColors provides colors) {

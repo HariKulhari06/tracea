@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.draw.rotate
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -23,6 +24,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hari.tracea.ui.theme.LocalDebuggerColors
+
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 
 /**
  * Collapsible section header for grouping requests by debugging session.
@@ -42,32 +47,41 @@ fun SessionHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .background(colors.surfaceVariant)
+            .background(colors.surfaceVariant.copy(alpha = 0.4f))
             .clickable { onToggle() }
-            .padding(horizontal = 16.dp, vertical = 6.dp), // reduced vertical padding to accommodate buttons comfortably
+            .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = if (isCollapsed) Icons.Default.ChevronRight else Icons.Default.ExpandMore,
+            imageVector = Icons.Default.ChevronRight,
             contentDescription = if (isCollapsed) "Expand" else "Collapse",
-            tint = colors.primary,
-            modifier = Modifier.size(20.dp)
+            tint = colors.onSurfaceVariant,
+            modifier = Modifier
+                .size(16.dp)
+                .rotate(if (isCollapsed) 0f else 90f)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = name,
-            color = colors.onSurface,
+            color = colors.onBackground,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
+        Spacer(modifier = Modifier.width(6.dp))
         Text(
-            text = if (requestCount == 1) "1 req" else "$requestCount reqs",
-            color = colors.onSurfaceVariant,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium
+            text = "$requestCount",
+            color = colors.onSurface,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            modifier = Modifier
+                .background(colors.surfaceVariant, CircleShape)
+                .padding(horizontal = 6.dp, vertical = 2.dp)
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(4.dp))
         
         IconButton(
             onClick = onShareClick,
@@ -77,7 +91,7 @@ fun SessionHeader(
                 imageVector = Icons.Default.Share,
                 contentDescription = "Export HAR",
                 tint = colors.primary,
-                modifier = Modifier.size(16.dp)
+                modifier = Modifier.size(18.dp)
             )
         }
         
@@ -88,8 +102,8 @@ fun SessionHeader(
             Icon(
                 imageVector = Icons.Default.Delete,
                 contentDescription = "Delete Session",
-                tint = colors.status4xx,
-                modifier = Modifier.size(16.dp)
+                tint = colors.statusError,
+                modifier = Modifier.size(18.dp)
             )
         }
     }

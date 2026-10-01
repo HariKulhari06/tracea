@@ -1,13 +1,16 @@
 package com.hari.tracea.ui.screens.timeline
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,40 +21,40 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateMapOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.hari.tracea.core.model.NetworkEvent
 import com.hari.tracea.ui.components.EmptyState
+import com.hari.tracea.ui.components.MethodBadge
 import com.hari.tracea.ui.components.SearchBar
-import com.hari.tracea.ui.components.SessionHeader
-import com.hari.tracea.ui.screens.network.StatusFilterChips
+import com.hari.tracea.ui.components.StatusBadge
 import com.hari.tracea.ui.theme.LocalDebuggerColors
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,226 +64,312 @@ fun TimelineScreen(
     modifier: Modifier = Modifier
 ) {
     val colors = LocalDebuggerColors.current
-    val context = LocalContext.current
     val events by viewModel.events.collectAsState()
-    val stats by viewModel.sessionStats.collectAsState()
+    val stats by viewModel.timelineStats.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
-    val activeFilter by viewModel.activeFilter.collectAsState()
-    val isSearchVisible by viewModel.isSearchVisible.collectAsState()
-
-    var deleteConfirmationSession by remember { mutableStateOf<Pair<String, String>?>(null) }
 
     Scaffold(
         topBar = {
-            Column(modifier = Modifier.background(colors.surface)) {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(
-                                text = "Timeline",
-                                color = colors.onSurface,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(colors.liveDot)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Live • ${events.size} items",
-                                    color = colors.onSurfaceVariant,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { viewModel.toggleSearch() }) {
-                            Icon(Icons.Default.Search, contentDescription = "Search", tint = colors.onSurface)
-                        }
-                        IconButton(onClick = { viewModel.clearAll() }) {
-                            Icon(Icons.Default.DeleteSweep, contentDescription = "Clear all", tint = colors.onSurface)
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = colors.surface),
-                    windowInsets = WindowInsets.statusBars
-                )
-
-                SearchBar(
-                    visible = isSearchVisible,
-                    query = searchQuery,
-                    onQueryChange = { viewModel.setSearchQuery(it) },
-                    onClose = { viewModel.toggleSearch() }
-                )
-
-                StatusFilterChips(
-                    selectedFilter = activeFilter,
-                    onFilterSelected = { viewModel.setFilter(it) },
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                
-                HorizontalDivider(color = colors.outline.copy(alpha = 0.5f), thickness = 0.5.dp)
-            }
-        },
-        bottomBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.surfaceVariant)
-            ) {
-                HorizontalDivider(color = colors.outline.copy(alpha = 0.5f), thickness = 0.5.dp)
-                
-                // Color Legend Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    LegendItem(color = colors.status2xx, label = "2xx")
-                    LegendItem(color = colors.status3xx, label = "3xx")
-                    LegendItem(color = colors.status4xx, label = "4xx")
-                    LegendItem(color = colors.status5xx, label = "5xx")
-                }
-
-                HorizontalDivider(color = colors.outline.copy(alpha = 0.3f), thickness = 0.5.dp)
-
-                // Session Summary Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    StatsItem(label = "REQUESTS", value = stats.totalRequests.toString())
-                    StatsItem(label = "DURATION", value = stats.formattedDuration)
-                    StatsItem(label = "SLOWEST", value = stats.slowestFormatted)
-                }
-            }
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Timeline",
+                        color = colors.onSurface,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.clearAll() }) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteSweep,
+                            contentDescription = "Clear all",
+                            tint = colors.onSurfaceVariant
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = colors.surface),
+                windowInsets = WindowInsets.statusBars
+            )
         },
         containerColor = colors.surface,
         modifier = modifier
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            if (events.isEmpty()) {
-                EmptyState(
-                    title = "No activity recorded",
-                    subtitle = "Network transactions will appear here as they happen"
-                )
-            } else {
-                val grouped = remember(events) { events.groupBy { it.sessionId } }
-                val collapsedSessions = remember { mutableStateMapOf<String, Boolean>() }
+            // Top Metrics Grid: Balanced 3-column layout matching iOS
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.surfaceVariant.copy(alpha = 0.35f))
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Row 1
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    StatCard(
+                        title = "REQUESTS",
+                        value = "${stats.totalRequests}",
+                        color = colors.primary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        title = "ERRORS",
+                        value = "${stats.errorCount}",
+                        color = if (stats.errorCount > 0) colors.statusError else colors.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        title = "DATA",
+                        value = stats.totalDataTransfer,
+                        color = Color(0xFF569CD6),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
-                    grouped.forEach { (sessionId, sessionEvents) ->
-                        val sessionName = sessionEvents.firstOrNull()?.sessionName ?: "Unknown Session"
-                        val isCollapsed = collapsedSessions[sessionId] ?: false
-
-                        item(key = sessionId) {
-                            SessionHeader(
-                                name = sessionName,
-                                requestCount = sessionEvents.size,
-                                isCollapsed = isCollapsed,
-                                onToggle = { collapsedSessions[sessionId] = !isCollapsed },
-                                onShareClick = { viewModel.exportSessionHar(context, sessionId, sessionName) },
-                                onDeleteClick = { deleteConfirmationSession = Pair(sessionId, sessionName) }
-                            )
-                        }
-
-                        if (!isCollapsed) {
-                            val sessionStart = sessionEvents.minOfOrNull { it.timestamp } ?: 0L
-                            val sessionEnd = sessionEvents.maxOfOrNull { it.timing.endTimestamp ?: (it.timestamp + (it.timing.totalMs ?: 0L)) } ?: 0L
-                            val sessionDuration = maxOf(1L, sessionEnd - sessionStart)
-
-                            items(sessionEvents, key = { it.id }) { event ->
-                                TimelineItem(
-                                    event = event,
-                                    sessionStart = sessionStart,
-                                    sessionDuration = sessionDuration,
-                                    onClick = { onEventClick(event.id) }
-                                )
-                            }
-                        }
-                    }
+                // Row 2
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    StatCard(
+                        title = "DURATION",
+                        value = stats.formattedDuration,
+                        color = colors.onBackground,
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        title = "SLOWEST",
+                        value = stats.slowestFormatted,
+                        color = Color(0xFFCE9178),
+                        modifier = Modifier.weight(1f)
+                    )
+                    StatCard(
+                        title = "STATUS",
+                        value = if (stats.totalRequests > 0) "Active" else "Idle",
+                        color = if (stats.totalRequests > 0) Color(0xFF4EC9B0) else colors.onSurfaceVariant,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
 
-            deleteConfirmationSession?.let { (sessionId, sessionName) ->
-                AlertDialog(
-                    onDismissRequest = { deleteConfirmationSession = null },
-                    title = { Text(text = "Delete Session", color = colors.onSurface) },
-                    text = { Text(text = "Are you sure you want to delete '$sessionName'? This will permanently remove all its network logs.", color = colors.onSurfaceVariant) },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                viewModel.deleteSession(sessionId)
-                                deleteConfirmationSession = null
-                            }
-                        ) {
-                            Text(text = "DELETE", color = colors.status4xx, fontWeight = FontWeight.Bold)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { deleteConfirmationSession = null }) {
-                            Text(text = "CANCEL", color = colors.onSurfaceVariant)
-                        }
-                    },
-                    containerColor = colors.surfaceVariant
-                )
+            HorizontalDivider(color = colors.outline.copy(alpha = 0.4f), thickness = 0.5.dp)
+
+            // Search Bar
+            SearchBar(
+                query = searchQuery,
+                onQueryChange = { viewModel.setSearchQuery(it) },
+                prompt = "Search URLs, paths...",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            )
+
+            if (events.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyState(
+                        title = "No Timeline Data",
+                        subtitle = "Network requests will appear here chronologically as they are executed."
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp)
+                ) {
+                    items(events, key = { it.id }) { event ->
+                        TimelineRow(
+                            event = event,
+                            onClick = { onEventClick(event.id) }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun LegendItem(color: androidx.compose.ui.graphics.Color, label: String) {
+private fun StatCard(
+    title: String,
+    value: String,
+    color: Color,
+    modifier: Modifier = Modifier
+) {
     val colors = LocalDebuggerColors.current
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.surface)
+            .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(6.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
         Text(
-            text = label, 
-            color = colors.onSurfaceVariant, 
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium
-        )
-    }
-}
-
-@Composable
-private fun StatsItem(label: String, value: String) {
-    val colors = LocalDebuggerColors.current
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = label,
-            color = colors.onSurfaceVariant.copy(alpha = 0.7f),
+            text = title,
+            color = colors.onSurfaceVariant,
             fontSize = 9.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.5.sp
         )
         Text(
             text = value,
-            color = colors.onSurface,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.ExtraBold
+            color = color,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+@Composable
+private fun TimelineRow(
+    event: NetworkEvent,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = LocalDebuggerColors.current
+    val timeFormat = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault())
+    val formattedTime = timeFormat.format(Date(event.timestamp))
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        // Timestamp
+        Text(
+            text = formattedTime,
+            color = colors.onSurfaceVariant,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Medium,
+            fontFamily = FontFamily.Monospace,
+            textAlign = TextAlign.End,
+            modifier = Modifier
+                .width(82.dp)
+                .padding(top = 4.dp)
+        )
+
+        // Connector line and dot
+        Box(
+            modifier = Modifier
+                .width(10.dp)
+                .height(48.dp),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            // Vertical line
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .fillMaxHeight()
+                    .background(colors.outline.copy(alpha = 0.4f))
+            )
+            // Dot
+            Box(
+                modifier = Modifier
+                    .padding(top = 6.dp)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(colors.methodColor(event.method))
+            )
+        }
+
+        // Content
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(bottom = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                MethodBadge(method = event.method)
+
+                val displayPath = if (event.path.isEmpty()) "/" else event.path
+                Text(
+                    text = displayPath,
+                    color = colors.onSurface,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    fontFamily = FontFamily.Monospace,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                event.statusCode?.let { code ->
+                    StatusBadge(statusCode = code)
+                }
+            }
+
+            // Mini waterfall timing bar
+            val totalMs = event.timing.totalMs
+            if (totalMs != null && totalMs > 0L) {
+                val total = maxOf(totalMs, 1L).toFloat()
+                val dnsConnMs = ((event.timing.dnsMs ?: 0L) + (event.timing.connectMs ?: 0L)).toFloat()
+                val ttfbMs = ((event.timing.tlsMs ?: 0L) + (event.timing.waitingMs ?: 0L)).toFloat()
+                val dlMs = (event.timing.downloadMs ?: 0L).toFloat()
+
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(5.dp)
+                        .clip(RoundedCornerShape(2.5.dp))
+                        .background(colors.surfaceVariant)
+                ) {
+                    val totalWidth = maxWidth
+                    val dnsConnW = (dnsConnMs / total * totalWidth.value).dp.coerceAtLeast(if (dnsConnMs > 0) 2.dp else 0.dp)
+                    val ttfbW = (ttfbMs / total * totalWidth.value).dp.coerceAtLeast(if (ttfbMs > 0) 2.dp else 0.dp)
+                    val dlW = (dlMs / total * totalWidth.value).dp.coerceAtLeast(if (dlMs > 0) 2.dp else 0.dp)
+
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.spacedBy(1.dp)
+                    ) {
+                        if (dnsConnW > 0.dp) {
+                            Box(
+                                modifier = Modifier
+                                    .width(dnsConnW)
+                                    .fillMaxHeight()
+                                    .background(Color(0xFFFFCC00))
+                            )
+                        }
+                        if (ttfbW > 0.dp) {
+                            Box(
+                                modifier = Modifier
+                                    .width(ttfbW)
+                                    .fillMaxHeight()
+                                    .background(Color(0xFF4CD964))
+                            )
+                        }
+                        if (dlW > 0.dp) {
+                            Box(
+                                modifier = Modifier
+                                    .width(dlW)
+                                    .fillMaxHeight()
+                                    .background(Color(0xFF007AFF))
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -82,7 +83,7 @@ fun SearchBar(
                 ) {
                     if (query.isEmpty()) {
                         Text(
-                            text = "Search by path (e.g. /api/v1)...",
+                            text = "Search URLs, paths, hosts...",
                             color = colors.onSurfaceVariant.copy(alpha = 0.5f),
                             fontSize = 14.sp
                         )
@@ -131,6 +132,81 @@ fun SearchBar(
                     }
                     .padding(4.dp)
             )
+        }
+    }
+}
+
+@Composable
+fun SearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    prompt: String = "Search URLs, paths, hosts..."
+) {
+    val colors = LocalDebuggerColors.current
+    val focusManager = LocalFocusManager.current
+
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(38.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.surfaceVariant)
+            .border(androidx.compose.foundation.BorderStroke(1.dp, colors.outline.copy(alpha = 0.6f)), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = null,
+            tint = colors.onSurfaceVariant,
+            modifier = Modifier.size(16.dp)
+        )
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            if (query.isEmpty()) {
+                Text(
+                    text = prompt,
+                    color = colors.onSurfaceVariant.copy(alpha = 0.6f),
+                    fontSize = 13.sp
+                )
+            }
+
+            BasicTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                textStyle = TextStyle(
+                    color = colors.onSurface,
+                    fontSize = 13.sp
+                ),
+                cursorBrush = SolidColor(colors.primary),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { focusManager.clearFocus() }),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        if (query.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .clickable { onQueryChange("") },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Clear",
+                    tint = colors.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp)
+                )
+            }
         }
     }
 }
