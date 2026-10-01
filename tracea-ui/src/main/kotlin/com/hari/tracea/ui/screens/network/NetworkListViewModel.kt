@@ -22,29 +22,42 @@ class NetworkListViewModel : ViewModel() {
     private val _activeFilter = MutableStateFlow(StatusFilter.ALL)
     val activeFilter: StateFlow<StatusFilter> = _activeFilter
 
-    private val _isSearchVisible = MutableStateFlow(false)
+    private val _activeMethodFilter = MutableStateFlow(MethodFilter.ALL)
+    val activeMethodFilter: StateFlow<MethodFilter> = _activeMethodFilter
+
+    private val _isSearchVisible = MutableStateFlow(true)
     val isSearchVisible: StateFlow<Boolean> = _isSearchVisible
 
     val events: StateFlow<List<NetworkEvent>> = combine(
         store?.getAll() ?: MutableStateFlow(emptyList()),
         _searchQuery,
-        _activeFilter
-    ) { allEvents, query, filter ->
+        _activeFilter,
+        _activeMethodFilter
+    ) { allEvents, query, filter, methodFilter ->
         allEvents.filter { event ->
-            // Simple path/URL contains search
-            val matchesQuery = query.isBlank() || event.url.contains(query, ignoreCase = true)
+            // Path/URL/host contains search
+            val matchesQuery = query.isBlank() ||
+                event.url.contains(query, ignoreCase = true) ||
+                (event.path?.contains(query, ignoreCase = true) == true) ||
+                (event.host?.contains(query, ignoreCase = true) == true)
 
             // Filter by status category
             val matchesFilter = when (filter) {
                 StatusFilter.ALL -> true
-                StatusFilter.SUCCESS_2XX -> (event.statusCode ?: 0) in 200..299
+                StatusFilter.SUCCESS, StatusFilter.SUCCESS_2XX -> (event.statusCode ?: 0) in 200..299
                 StatusFilter.REDIRECT_3XX -> (event.statusCode ?: 0) in 300..399
                 StatusFilter.CLIENT_ERROR_4XX -> (event.statusCode ?: 0) in 400..499
                 StatusFilter.SERVER_ERROR_5XX -> (event.statusCode ?: 0) in 500..599
                 StatusFilter.ERRORS -> (event.statusCode ?: 0) >= 400 || event.error != null
             }
 
-            matchesQuery && matchesFilter
+            // Filter by HTTP method
+            val matchesMethod = when (methodFilter) {
+                MethodFilter.ALL -> true
+                else -> event.method == methodFilter.method
+            }
+
+            matchesQuery && matchesFilter && matchesMethod
         }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
@@ -58,6 +71,15 @@ class NetworkListViewModel : ViewModel() {
 
     fun setFilter(filter: StatusFilter) {
         _activeFilter.value = filter
+    }
+
+    fun setMethodFilter(filter: MethodFilter) {
+        _activeMethodFilter.value = filter
+    }
+
+    fun resetFilters() {
+        _activeFilter.value = StatusFilter.ALL
+        _activeMethodFilter.value = MethodFilter.ALL
     }
 
     fun toggleSearch() {

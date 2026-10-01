@@ -7,14 +7,21 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.hari.tracea.Tracea
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 class DemoActivity : ComponentActivity() {
@@ -42,8 +49,10 @@ class DemoActivity : ComponentActivity() {
 fun DemoScreen(apiService: DemoApiService) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var statusText by remember { mutableStateOf("") }
     
     fun showToast(message: String) {
+        statusText = message
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
     
@@ -66,12 +75,31 @@ fun DemoScreen(apiService: DemoApiService) {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Open Debugger button — matches iOS "Open Tracea Debugger UI" blue banner
             Button(
                 onClick = { Tracea.show(context) },
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Open Debugger")
+                Text("Open Tracea Debugger UI")
+            }
+            
+            // Status banner — matches iOS real-time response status display
+            if (statusText.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = statusText,
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontFamily = FontFamily.Monospace
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -169,9 +197,11 @@ fun DemoScreen(apiService: DemoApiService) {
             
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             
+            // Run All Transactions — matches iOS sequential runner
             Button(
                 onClick = {
                     scope.launch {
+                        showToast("Running all transactions...")
                         apiService.getUsers()
                         kotlinx.coroutines.delay(200)
                         apiService.postLogin()
@@ -183,6 +213,8 @@ fun DemoScreen(apiService: DemoApiService) {
                         apiService.get404()
                         kotlinx.coroutines.delay(200)
                         apiService.get500()
+                        kotlinx.coroutines.delay(200)
+                        apiService.timeout()
                         kotlinx.coroutines.delay(200)
                         apiService.largeResponse()
                         kotlinx.coroutines.delay(200)
@@ -202,6 +234,34 @@ fun DemoScreen(apiService: DemoApiService) {
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
             ) {
                 Text("Run All Transactions")
+            }
+            
+            // Mockable Endpoint — matches iOS mockable test
+            DemoButton("Mockable Endpoint") {
+                scope.launch {
+                    val result = apiService.getUsers()
+                    showToast(if (result.isSuccess) "Mockable Success" else "Mockable Failed")
+                }
+            }
+            
+            // Stress Test — matches iOS burst test
+            Button(
+                onClick = {
+                    scope.launch {
+                        showToast("Starting stress test: 150 burst calls...")
+                        val jobs = (1..150).map {
+                            async {
+                                apiService.getUsers()
+                            }
+                        }
+                        jobs.forEach { it.await() }
+                        showToast("⚡ Stress test complete: 150 calls finished")
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("⚡ Stress Test (150 Burst Calls)")
             }
         }
     }

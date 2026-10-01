@@ -12,10 +12,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.WrapText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,11 +36,13 @@ fun CodeBlock(
     onCopy: (() -> Unit)? = null
 ) {
     val colors = LocalDebuggerColors.current
+    var isWrapped by remember { mutableStateOf(false) }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(colors.surfaceContainer)
+            .background(colors.surfaceVariant)
             .border(0.5.dp, colors.outline, RoundedCornerShape(8.dp))
     ) {
         Row(
@@ -45,7 +52,9 @@ fun CodeBlock(
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .horizontalScroll(rememberScrollState())
+                    .then(
+                        if (isWrapped) Modifier else Modifier.horizontalScroll(rememberScrollState())
+                    )
                     .padding(12.dp)
             ) {
                 Text(
@@ -57,19 +66,31 @@ fun CodeBlock(
                 )
             }
 
-            if (onCopy != null) {
+            Row(modifier = Modifier.padding(top = 4.dp, end = 4.dp)) {
                 IconButton(
-                    onClick = onCopy,
-                    modifier = Modifier
-                        .padding(top = 4.dp, end = 4.dp)
-                        .size(32.dp)
+                    onClick = { isWrapped = !isWrapped },
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.ContentCopy,
-                        contentDescription = "Copy",
-                        tint = colors.onSurfaceVariant.copy(alpha = 0.6f),
+                        imageVector = Icons.Default.WrapText,
+                        contentDescription = "Wrap Text",
+                        tint = if (isWrapped) colors.primary else colors.onSurfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.size(16.dp)
                     )
+                }
+
+                if (onCopy != null) {
+                    IconButton(
+                        onClick = onCopy,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ContentCopy,
+                            contentDescription = "Copy",
+                            tint = colors.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
         }

@@ -2,31 +2,26 @@ package com.hari.tracea.ui.screens.detail.tabs
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.hari.tracea.core.model.BodyData
 import com.hari.tracea.core.model.NetworkEvent
+import com.hari.tracea.core.util.SizeFormatter
 import com.hari.tracea.ui.components.CodeBlock
-import com.hari.tracea.ui.components.CookieParser
-import com.hari.tracea.ui.components.CookiesSection
 import com.hari.tracea.ui.components.HeadersSection
 import com.hari.tracea.ui.components.JsonSyntaxHighlighter
+import com.hari.tracea.ui.components.KeyValueCard
+import com.hari.tracea.ui.components.QueryParamsSection
 import com.hari.tracea.ui.components.SectionHeader
+import com.hari.tracea.ui.components.UrlCard
 import com.hari.tracea.ui.screens.detail.BodyDisplayMode
-import com.hari.tracea.ui.theme.LocalDebuggerColors
 
 @Composable
 fun RequestTab(
@@ -43,43 +38,30 @@ fun RequestTab(
             .fillMaxSize()
             .verticalScroll(scrollState)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // URL Section
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SectionHeader(title = "URL")
-            CodeBlock(
-                content = event.url, 
-                onCopy = { clipboardManager.setText(AnnotatedString(event.url)) }
-            )
-        }
+        // Request URL Card
+        SectionHeader(title = "Request URL")
+        UrlCard(method = event.method, url = event.url)
 
-        // Summary Info
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            SectionHeader(title = "Information")
-            
-            InfoRow(label = "Method", value = event.method.name)
-            InfoRow(label = "Scheme", value = event.scheme.uppercase())
-            event.protocol?.let { InfoRow(label = "Protocol", value = it) }
-            InfoRow(label = "Host", value = event.host)
-            event.port?.let { InfoRow(label = "Port", value = it.toString()) }
-        }
+        // Request Information Card
+        val infoItems = mutableListOf(
+            "Method" to event.method.name.uppercase(),
+            "Host" to event.host,
+            "Scheme" to event.scheme
+        )
+        event.port?.let { infoItems.add("Port" to it.toString()) }
+        event.requestContentType?.let { infoItems.add("Content-Type" to it) }
+        infoItems.add("Request Size" to SizeFormatter.format(event.requestSize))
+
+        KeyValueCard(title = "Request Info", items = infoItems)
 
         // Query Parameters
         if (event.queryParameters.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionHeader(title = "Query Parameters")
-                val formattedParams = event.queryParameters.entries.joinToString("\n") { (key, values) ->
-                    "$key: ${values.joinToString(", ")}"
-                }
-                CodeBlock(
-                    content = formattedParams,
-                    onCopy = { clipboardManager.setText(AnnotatedString(formattedParams)) }
-                )
-            }
+            QueryParamsSection(queryParameters = event.queryParameters)
         }
 
-        // Headers
+        // Request Headers
         HeadersSection(
             title = "Request Headers",
             headers = event.requestHeaders,
@@ -89,67 +71,51 @@ fun RequestTab(
             }
         )
 
-        // Request Cookies
-        val cookieValues = event.requestHeaders
-            .filter { it.key.equals("Cookie", ignoreCase = true) }
-            .values.flatten()
-        if (cookieValues.isNotEmpty()) {
-            val parsedCookies = CookieParser.parseRequestCookies(cookieValues)
-            CookiesSection(
-                title = "Request Cookies",
-                cookies = parsedCookies,
-                onCopy = {
-                    val text = cookieValues.joinToString("; ")
-                    clipboardManager.setText(AnnotatedString(text))
-                }
-            )
-        }
 
         // Request Body
         event.requestBody?.let { body ->
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                SectionHeader(title = "Request Body")
+            SectionHeader(title = "Request Body")
+            when (body) {
+                is BodyData.Text -> {
+                    val isJson = event.requestContentType?.contains("json", ignoreCase = true) == true ||
+                            body.content.trim().startsWith("{") ||
+                            body.content.trim().startsWith("[")
 
-                when (body) {
-                    is BodyData.Text -> {
-                        val formatted = if (requestBodyMode == BodyDisplayMode.PRETTY) {
-                            JsonSyntaxHighlighter.formatAndHighlight(body.content).text
-                        } else {
-                            body.content
-                        }
-                        CodeBlock(
-                            content = formatted, 
-                            onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
-                        )
+                    val formatted = if (isJson && requestBodyMode == BodyDisplayMode.PRETTY) {
+                        JsonSyntaxHighlighter.formatAndHighlight(body.content).text
+                    } else {
+                        body.content
                     }
-                    is BodyData.Binary -> CodeBlock(content = "Binary body (${body.size} bytes)")
-                    is BodyData.Truncated -> CodeBlock(content = "Truncated body (${body.capturedSize}/${body.actualSize} bytes)")
-                    is BodyData.FileReference -> CodeBlock(content = "Stored in file: ${body.path}")
+                    CodeBlock(
+                        content = formatted,
+                        onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
+                    )
+                }
+                is BodyData.Binary -> {
+                    KeyValueCard(
+                        title = "Binary Body",
+                        items = listOf("Size" to SizeFormatter.format(body.size))
+                    )
+                }
+                is BodyData.Truncated -> {
+                    KeyValueCard(
+                        title = "Truncated Body",
+                        items = listOf(
+                            "Captured Size" to SizeFormatter.format(body.capturedSize),
+                            "Actual Size" to SizeFormatter.format(body.actualSize)
+                        )
+                    )
+                }
+                is BodyData.FileReference -> {
+                    KeyValueCard(
+                        title = "File Reference",
+                        items = listOf(
+                            "Path" to body.path,
+                            "Size" to SizeFormatter.format(body.size)
+                        )
+                    )
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    val colors = LocalDebuggerColors.current
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = label,
-            color = colors.onSurfaceVariant,
-            fontSize = 13.sp,
-            modifier = Modifier.width(80.dp)
-        )
-        Text(
-            text = value,
-            color = colors.onSurface,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f)
-        )
     }
 }

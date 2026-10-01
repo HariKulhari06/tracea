@@ -16,6 +16,8 @@ import androidx.compose.ui.unit.sp
 import com.hari.tracea.core.model.HttpMethod
 import com.hari.tracea.ui.theme.LocalDebuggerColors
 
+import androidx.compose.ui.graphics.Color
+
 @Composable
 fun MethodBadge(
     method: HttpMethod,
@@ -27,17 +29,16 @@ fun MethodBadge(
     Box(
         modifier = modifier
             .widthIn(min = 52.dp)
-            .background(color.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+            .background(color, RoundedCornerShape(4.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = method.name,
-            color = color,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Black,
-            textAlign = TextAlign.Center,
-            letterSpacing = 0.5.sp
+            color = Color(0xFF0F111A),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
         )
     }
 }

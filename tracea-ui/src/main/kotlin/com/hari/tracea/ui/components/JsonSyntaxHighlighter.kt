@@ -10,16 +10,27 @@ import kotlinx.serialization.json.JsonElement
 
 object JsonSyntaxHighlighter {
 
-    private val colorKey = Color(0xFF7C6EF6)       // Purple
-    private val colorString = Color(0xFF4CAF50)    // Green
-    private val colorNumber = Color(0xFF5B8DEF)    // Blue
-    private val colorBoolean = Color(0xFFFF9800)   // Orange
-    private val colorNull = Color(0xFFFF9800)      // Orange
-    private val colorDelimiter = Color(0xFF9E9E9E) // Gray
+    private val colorKey = Color(0xFFC586C0)       // VS Code magenta
+    private val colorString = Color(0xFF4EC9B0)    // Teal-green
+    private val colorNumber = Color(0xFF569CD6)    // Steel blue
+    private val colorBoolean = Color(0xFFCE9178)   // Terracotta
+    private val colorNull = Color(0xFFCE9178)      // Terracotta
+    private val colorDelimiter = Color(0xFFE0E0E0) // OnBackground
 
     private val jsonFormatter = Json { prettyPrint = true; ignoreUnknownKeys = true }
+    private val highlightCache = android.util.LruCache<String, AnnotatedString>(20)
 
     fun formatAndHighlight(rawJson: String): AnnotatedString {
+        if (rawJson.length > 100000) {
+            return buildAnnotatedString {
+                withStyle(SpanStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)) {
+                    append(rawJson)
+                }
+            }
+        }
+        
+        highlightCache.get(rawJson)?.let { return it }
+
         val pretty = try {
             val element = jsonFormatter.parseToJsonElement(rawJson)
             jsonFormatter.encodeToString(JsonElement.serializer(), element)
@@ -27,7 +38,7 @@ object JsonSyntaxHighlighter {
             rawJson
         }
 
-        return buildAnnotatedString {
+        val result = buildAnnotatedString {
             var i = 0
             val length = pretty.length
             var inString = false
@@ -89,5 +100,7 @@ object JsonSyntaxHighlighter {
                 }
             }
         }
+        highlightCache.put(rawJson, result)
+        return result
     }
 }

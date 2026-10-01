@@ -44,17 +44,24 @@ object Tracea {
             return
         }
         
-        _config = config
+        val prefs = context.getSharedPreferences("tracea_settings", Context.MODE_PRIVATE)
+        val initialAllowed = prefs.getStringSet("allowed_domains", null)?.toList() ?: config.domainFilterConfig.allowedDomains
+        val initialIgnored = prefs.getStringSet("ignored_domains", null)?.toList() ?: config.domainFilterConfig.ignoredDomains
+        val effectiveDomainFilter = com.hari.tracea.core.config.DomainFilterConfig(allowedDomains = initialAllowed, ignoredDomains = initialIgnored)
+        com.hari.tracea.core.config.DomainFilterConfig.activeConfig = effectiveDomainFilter
+
+        val effectiveConfig = config.copy(domainFilterConfig = effectiveDomainFilter)
+        _config = effectiveConfig
         _collector = DefaultNetworkEventCollector()
-        _redactionEngine = RedactionEngine(config.redactionConfig)
-        _store = RoomNetworkEventStore(context, config.storageConfig)
-        _manualApi = ManualCaptureApi(_collector, config)
+        _redactionEngine = RedactionEngine(effectiveConfig.redactionConfig)
+        _store = RoomNetworkEventStore(context, effectiveConfig.storageConfig)
+        _manualApi = ManualCaptureApi(_collector, effectiveConfig)
         
         com.hari.tracea.core.mock.MockEngine.initialize(context)
         
         // Set up the UI service locator
         TraceaServiceLocator.store = _store
-        TraceaServiceLocator.config = config
+        TraceaServiceLocator.config = effectiveConfig
         DebuggerSession.startNewSession()
         TraceaServiceLocator.sessionId = DebuggerSession.sessionId
         TraceaServiceLocator.sessionName = DebuggerSession.sessionName

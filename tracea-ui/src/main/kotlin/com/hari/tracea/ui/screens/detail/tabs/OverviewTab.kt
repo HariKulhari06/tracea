@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -26,10 +25,13 @@ import androidx.compose.ui.unit.sp
 import com.hari.tracea.core.model.BodyData
 import com.hari.tracea.core.model.NetworkEvent
 import com.hari.tracea.core.model.isMocked
+import com.hari.tracea.core.util.SizeFormatter
 import com.hari.tracea.ui.components.CodeBlock
 import com.hari.tracea.ui.components.HeadersSection
 import com.hari.tracea.ui.components.JsonSyntaxHighlighter
+import com.hari.tracea.ui.components.KeyValueCard
 import com.hari.tracea.ui.components.SectionHeader
+import com.hari.tracea.ui.components.UrlCard
 import com.hari.tracea.ui.screens.detail.BodyDisplayMode
 import com.hari.tracea.ui.theme.LocalDebuggerColors
 
@@ -49,7 +51,7 @@ fun OverviewTab(
             .fillMaxSize()
             .verticalScroll(scrollState)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         if (event.isMocked) {
             Row(
@@ -79,15 +81,23 @@ fun OverviewTab(
                 }
             }
         }
-        // General Section
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            SectionHeader(title = "General")
 
-            InfoRow(label = "Method", value = event.method.name)
-            InfoRow(label = "URL", value = event.url)
-            event.protocol?.let { InfoRow(label = "Protocol", value = it) }
-            InfoRow(label = "Scheme", value = event.scheme.uppercase())
+        // Request URL Card
+        SectionHeader(title = "Request URL")
+        UrlCard(method = event.method, url = event.url)
+
+        // General Metadata Card
+        val generalItems = mutableListOf(
+            "Method" to event.method.name.uppercase(),
+            "Host" to event.host,
+            "Scheme" to event.scheme
+        )
+        event.port?.let { generalItems.add("Port" to it.toString()) }
+        event.statusCode?.let { code ->
+            val msg = event.statusMessage?.let { " $it" } ?: ""
+            generalItems.add("Status" to "$code$msg")
         }
+        KeyValueCard(title = "Overview Info", items = generalItems)
 
         // Request Headers
         HeadersSection(
@@ -110,82 +120,89 @@ fun OverviewTab(
         )
 
         // Response Body
-        event.responseBody?.let { body ->
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SectionHeader(title = "Response Body", modifier = Modifier.weight(1f))
+        SectionHeader(title = "Response Body")
+        val resBody = event.responseBody
+        if (resBody != null) {
+            when (resBody) {
+                is BodyData.Text -> {
+                    val isJson = event.responseContentType?.contains("json", ignoreCase = true) == true ||
+                            resBody.content.trim().startsWith("{") ||
+                            resBody.content.trim().startsWith("[")
 
-                    // Raw / Pretty toggle pills
-                    Row(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(colors.surfaceContainer)
-                            .padding(2.dp)
-                    ) {
-                        BodyModeToggle(
-                            label = "Raw",
-                            isSelected = responseBodyMode == BodyDisplayMode.RAW,
-                            onClick = { onResponseBodyModeChange(BodyDisplayMode.RAW) }
-                        )
-                        BodyModeToggle(
-                            label = "Pretty",
-                            isSelected = responseBodyMode == BodyDisplayMode.PRETTY,
-                            onClick = { onResponseBodyModeChange(BodyDisplayMode.PRETTY) }
-                        )
-                    }
-                }
+                    if (isJson) {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(colors.surfaceVariant)
+                                .padding(2.dp)
+                        ) {
+                            BodyModeToggle(
+                                label = "Pretty",
+                                isSelected = responseBodyMode == BodyDisplayMode.PRETTY,
+                                onClick = { onResponseBodyModeChange(BodyDisplayMode.PRETTY) }
+                            )
+                            BodyModeToggle(
+                                label = "Raw",
+                                isSelected = responseBodyMode == BodyDisplayMode.RAW,
+                                onClick = { onResponseBodyModeChange(BodyDisplayMode.RAW) }
+                            )
+                        }
 
-                when (body) {
-                    is BodyData.Text -> {
-                        val content = if (responseBodyMode == BodyDisplayMode.PRETTY) {
-                            JsonSyntaxHighlighter.formatAndHighlight(body.content).text
+                        val bodyText = if (responseBodyMode == BodyDisplayMode.PRETTY) {
+                            JsonSyntaxHighlighter.formatAndHighlight(resBody.content).text
                         } else {
-                            body.content
+                            resBody.content
                         }
                         CodeBlock(
-                            content = content,
-                            onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
+                            content = bodyText,
+                            onCopy = { clipboardManager.setText(AnnotatedString(resBody.content)) }
+                        )
+                    } else {
+                        CodeBlock(
+                            content = resBody.content,
+                            onCopy = { clipboardManager.setText(AnnotatedString(resBody.content)) }
                         )
                     }
-                    is BodyData.Binary -> {
-                        CodeBlock(content = "Binary response (${body.size} bytes)\nPreview unavailable")
-                    }
-                    is BodyData.Truncated -> {
-                        CodeBlock(content = "Body truncated (showing ${body.capturedSize} of ${body.actualSize} bytes)")
-                    }
-                    is BodyData.FileReference -> {
-                        CodeBlock(content = "Stored in file: ${body.path}")
-                    }
+                }
+                is BodyData.FileReference -> {
+                    KeyValueCard(
+                        title = "File Reference",
+                        items = listOf(
+                            "Path" to resBody.path,
+                            "Size" to SizeFormatter.format(resBody.size)
+                        )
+                    )
+                }
+                is BodyData.Truncated -> {
+                    KeyValueCard(
+                        title = "Truncated Payload",
+                        items = listOf(
+                            "Captured Size" to SizeFormatter.format(resBody.capturedSize),
+                            "Actual Size" to SizeFormatter.format(resBody.actualSize)
+                        )
+                    )
+                }
+                is BodyData.Binary -> {
+                    KeyValueCard(
+                        title = "Binary Payload",
+                        items = listOf(
+                            "Size" to SizeFormatter.format(resBody.size)
+                        )
+                    )
                 }
             }
+        } else {
+            Text(
+                text = "No response body recorded",
+                color = colors.onSurfaceVariant,
+                fontSize = 12.sp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(colors.surface)
+                    .padding(12.dp)
+            )
         }
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    val colors = LocalDebuggerColors.current
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = label,
-            color = colors.onSurfaceVariant,
-            fontSize = 13.sp,
-            modifier = Modifier.width(80.dp)
-        )
-        Text(
-            text = value,
-            color = colors.onSurface,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f)
-        )
     }
 }
 
@@ -199,15 +216,16 @@ private fun BodyModeToggle(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(4.dp))
-            .background(if (isSelected) colors.primaryContainer else colors.surfaceContainer)
+            .background(if (isSelected) colors.surface else colors.surfaceVariant)
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         Text(
             text = label,
-            color = if (isSelected) colors.primary else colors.onSurfaceVariant,
+            color = if (isSelected) colors.onSurface else colors.onSurfaceVariant,
             fontSize = 11.sp,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
         )
     }
 }
+

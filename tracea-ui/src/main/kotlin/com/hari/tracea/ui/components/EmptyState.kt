@@ -6,6 +6,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Wifi
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,6 +28,12 @@ fun EmptyState(
     modifier: Modifier = Modifier
 ) {
     val colors = LocalDebuggerColors.current
+    val icon = when {
+        title.contains("No Events", ignoreCase = true) -> Icons.Default.Wifi
+        title.contains("No Matching Requests", ignoreCase = true) -> Icons.Default.FilterList
+        else -> null
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -30,6 +41,17 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = colors.onSurfaceVariant,
+                modifier = Modifier
+                    .size(48.dp)
+                    .padding(bottom = 16.dp)
+            )
+        }
+
         Text(
             text = title,
             color = colors.onSurface,

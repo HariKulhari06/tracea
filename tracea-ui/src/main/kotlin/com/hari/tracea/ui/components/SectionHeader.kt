@@ -31,7 +31,7 @@ fun SectionHeader(
     ) {
         Text(
             text = title.uppercase(),
-            color = colors.sectionHeader,
+            color = colors.onSurfaceVariant,
             fontWeight = FontWeight.Black,
             fontSize = 11.sp,
             letterSpacing = 1.sp

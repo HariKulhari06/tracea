@@ -10,10 +10,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,8 +24,14 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,11 +44,16 @@ import com.hari.tracea.ui.theme.LocalDebuggerColors
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    onBack: () -> Unit = {},
+    onDomainFilterClick: () -> Unit = {},
+    onNavigateToRedaction: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
     val colors = LocalDebuggerColors.current
     val scrollState = rememberScrollState()
+
+    var showClearDialog by remember { mutableStateOf(false) }
 
     val enableDebugger by viewModel.enableDebugger.collectAsState()
     val floatingButton by viewModel.floatingButton.collectAsState()
@@ -56,8 +68,12 @@ fun SettingsScreen(
             TopAppBar(
                 title = { Text("Settings", color = colors.onSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu", tint = colors.onSurface)
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = colors.onSurface
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = colors.surface)
@@ -77,7 +93,7 @@ fun SettingsScreen(
             // GENERAL
             SettingsSection(title = "GENERAL") {
                 ToggleRow(
-                    title = "Enable Tracea",
+                    title = "Enable Debugger",
                     subtitle = "Enable or disable network capture",
                     checked = enableDebugger,
                     onCheckedChange = { viewModel.setEnableDebugger(it) }
@@ -87,10 +103,6 @@ fun SettingsScreen(
                     subtitle = "Show floating button to open debugger",
                     checked = floatingButton,
                     onCheckedChange = { viewModel.setFloatingButton(it) }
-                )
-                NavigationRow(
-                    title = "Theme",
-                    value = "Follow system"
                 )
             }
 
@@ -102,37 +114,25 @@ fun SettingsScreen(
                     checked = captureRequests,
                     onCheckedChange = { viewModel.setCaptureRequests(it) }
                 )
-                ToggleRow(
-                    title = "Capture WebSocket",
-                    subtitle = "Capture WebSocket frames",
-                    checked = captureWebSocket,
-                    onCheckedChange = { viewModel.setCaptureWebSocket(it) }
-                )
-                NavigationRow(
-                    title = "Max Stored Requests",
-                    value = "500 requests"
-                )
-                NavigationRow(
-                    title = "Max Request/Response Body Size",
-                    value = "2 MB"
-                )
                 ActionRow(
                     title = "Clear All Data",
                     subtitle = "Remove all captured data",
                     isDestructive = true,
-                    onClick = { viewModel.clearAllData() }
+                    onClick = { showClearDialog = true }
+                )
+                Text(
+                    text = "Usage: ${viewModel.eventCount} events (${viewModel.storageUsage})",
+                    color = colors.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    modifier = Modifier.padding(start = 16.dp, top = 8.dp)
                 )
             }
 
             // REDACTION (PRIVACY)
             SettingsSection(title = "REDACTION (PRIVACY)") {
                 NavigationRow(
-                    title = "Redact Headers",
-                    value = "3 headers"
-                )
-                NavigationRow(
-                    title = "Redact JSON Fields",
-                    value = "6 fields"
+                    title = "Redaction Settings",
+                    onClick = onNavigateToRedaction
                 )
                 ToggleRow(
                     title = "Show Redacted Placeholder",
@@ -142,36 +142,61 @@ fun SettingsScreen(
                 )
             }
 
-            // ADVANCED
-            SettingsSection(title = "ADVANCED") {
-                ToggleRow(
-                    title = "Log cURL",
-                    subtitle = "Allow generating cURL command",
-                    checked = logCurl,
-                    onCheckedChange = { viewModel.setLogCurl(it) }
-                )
-                ToggleRow(
-                    title = "Show Request Body for GET",
-                    subtitle = "Show body (if any) for GET/DELETE requests",
-                    checked = showGetRequestBody,
-                    onCheckedChange = { viewModel.setShowGetRequestBody(it) }
-                )
+            // DOMAIN FILTERING
+            val domainFilter = com.hari.tracea.ui.TraceaServiceLocator.config?.domainFilterConfig
+            val domainSummary = when {
+                domainFilter != null && domainFilter.allowedDomains.isNotEmpty() ->
+                    "${domainFilter.allowedDomains.size} allowed"
+                domainFilter != null && domainFilter.ignoredDomains.isNotEmpty() ->
+                    "${domainFilter.ignoredDomains.size} ignored"
+                else -> "All traffic"
+            }
+            SettingsSection(title = "DOMAIN FILTERING") {
                 NavigationRow(
-                    title = "Network Types",
-                    value = "All (Wi-Fi + Mobile)"
+                    title = "Allowed & Ignored Domains",
+                    value = domainSummary,
+                    onClick = onDomainFilterClick
                 )
             }
 
-            // ABOUT
-            SettingsSection(title = "ABOUT") {
+            // ABOUT TRACEA
+            SettingsSection(title = "ABOUT TRACEA") {
                 NavigationRow(
-                    title = "Version",
-                    value = "1.0.0",
+                    title = "SDK Version",
+                    value = "1.5.0",
                     showChevron = false
                 )
-                NavigationRow(title = "Send Feedback")
-                NavigationRow(title = "Open Source Licenses")
+                NavigationRow(
+                    title = "Platform",
+                    value = "Android 8.0+ (API 26+)",
+                    showChevron = false
+                )
+                NavigationRow(title = "GitHub Repository", value = "tracea")
             }
+        }
+
+        if (showClearDialog) {
+            AlertDialog(
+                onDismissRequest = { showClearDialog = false },
+                title = { Text("Clear Data") },
+                text = { Text("Are you sure you want to clear all recorded network events? This action cannot be undone.") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.clearAllData()
+                        showClearDialog = false
+                    }) {
+                        Text("Clear", color = colors.statusError)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showClearDialog = false }) {
+                        Text("Cancel", color = colors.onSurface)
+                    }
+                },
+                containerColor = colors.surface,
+                titleContentColor = colors.onSurface,
+                textContentColor = colors.onSurfaceVariant
+            )
         }
     }
 }
@@ -185,7 +210,7 @@ private fun SettingsSection(
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             text = title,
-            color = colors.sectionHeader,
+            color = colors.onSurfaceVariant,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 4.dp)
@@ -221,11 +246,11 @@ private fun ToggleRow(
                     checkedThumbColor = colors.onSurface,
                     checkedTrackColor = colors.primary,
                     uncheckedThumbColor = colors.onSurfaceVariant,
-                    uncheckedTrackColor = colors.surfaceContainer
+                    uncheckedTrackColor = colors.surfaceVariant
                 )
             )
         }
-        Divider(color = colors.outline.copy(alpha = 0.3f), thickness = 0.5.dp)
+        HorizontalDivider(color = colors.outline.copy(alpha = 0.3f), thickness = 0.5.dp)
     }
 }
 
@@ -258,7 +283,7 @@ private fun NavigationRow(
                 }
             }
         }
-        Divider(color = colors.outline.copy(alpha = 0.3f), thickness = 0.5.dp)
+        HorizontalDivider(color = colors.outline.copy(alpha = 0.3f), thickness = 0.5.dp)
     }
 }
 
@@ -287,6 +312,6 @@ private fun ActionRow(
                 Icon(Icons.Default.Delete, contentDescription = "Delete", tint = colors.errorDot)
             }
         }
-        Divider(color = colors.outline.copy(alpha = 0.3f), thickness = 0.5.dp)
+        HorizontalDivider(color = colors.outline.copy(alpha = 0.3f), thickness = 0.5.dp)
     }
 }

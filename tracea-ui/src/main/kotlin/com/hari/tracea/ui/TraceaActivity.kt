@@ -30,11 +30,12 @@ import com.hari.tracea.ui.navigation.DebuggerNavHost
 import com.hari.tracea.ui.navigation.DebuggerTab
 import com.hari.tracea.ui.navigation.NetworkRoute
 import com.hari.tracea.ui.navigation.RequestDetailRoute
+import com.hari.tracea.ui.navigation.TimelineRoute
 import com.hari.tracea.ui.navigation.MocksRoute
+import com.hari.tracea.ui.navigation.SettingsRoute
+import com.hari.tracea.ui.navigation.DomainFilterRoute
 import com.hari.tracea.ui.theme.DebuggerTheme
 import com.hari.tracea.ui.theme.LocalDebuggerColors
-
-import com.hari.tracea.ui.navigation.WebDashboardRoute
 
 class TraceaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,7 +48,9 @@ class TraceaActivity : ComponentActivity() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentDestination = navBackStackEntry?.destination
 
-                val showBottomBar = currentDestination?.hasRoute<RequestDetailRoute>() != true
+                val showBottomBar = currentDestination?.hasRoute<RequestDetailRoute>() != true &&
+                    currentDestination?.hasRoute<SettingsRoute>() != true &&
+                    currentDestination?.hasRoute<DomainFilterRoute>() != true
 
                 Scaffold(
                     bottomBar = {
@@ -69,7 +72,10 @@ class TraceaActivity : ComponentActivity() {
                             .consumeWindowInsets(innerPadding)
                             .background(colors.surface)
                     ) {
-                        DebuggerNavHost(navController)
+                        DebuggerNavHost(
+                            navController = navController,
+                            onClose = { finish() }
+                        )
                     }
                 }
             }
@@ -79,17 +85,12 @@ class TraceaActivity : ComponentActivity() {
     @Composable
     private fun RowScope.NavigationItems(currentDestination: NavDestination?, navController: NavHostController) {
         val colors = LocalDebuggerColors.current
-        val tabs = DebuggerTab.entries.filter { tab ->
-            when (tab) {
-                DebuggerTab.WEB -> TraceaServiceLocator.config?.enableWebDashboard == true
-                else -> true
-            }
-        }
+        val tabs = DebuggerTab.entries
         tabs.forEach { tab ->
             val selected = when (tab) {
                 DebuggerTab.NETWORK -> currentDestination?.hasRoute<NetworkRoute>() == true
+                DebuggerTab.TIMELINE -> currentDestination?.hasRoute<TimelineRoute>() == true
                 DebuggerTab.MOCKS -> currentDestination?.hasRoute<MocksRoute>() == true
-                DebuggerTab.WEB -> currentDestination?.hasRoute<WebDashboardRoute>() == true
             }
 
             NavigationBarItem(
@@ -97,8 +98,8 @@ class TraceaActivity : ComponentActivity() {
                 onClick = {
                     val route = when (tab) {
                         DebuggerTab.NETWORK -> NetworkRoute
+                        DebuggerTab.TIMELINE -> TimelineRoute
                         DebuggerTab.MOCKS -> MocksRoute
-                        DebuggerTab.WEB -> WebDashboardRoute
                     }
                     navController.navigate(route) {
                         popUpTo(navController.graph.startDestinationId) { 
@@ -115,7 +116,7 @@ class TraceaActivity : ComponentActivity() {
                     selectedTextColor = colors.primary,
                     unselectedIconColor = colors.onSurfaceVariant,
                     unselectedTextColor = colors.onSurfaceVariant,
-                    indicatorColor = colors.surfaceContainer
+                    indicatorColor = colors.surfaceVariant
                 )
             )
         }

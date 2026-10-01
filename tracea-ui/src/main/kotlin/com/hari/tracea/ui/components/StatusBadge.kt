@@ -16,26 +16,24 @@ import com.hari.tracea.ui.theme.LocalDebuggerColors
 
 @Composable
 fun StatusBadge(
-    statusCode: Int,
+    statusCode: Int?,
     statusMessage: String? = null,
     showMessage: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val colors = LocalDebuggerColors.current
-    val text = if (showMessage && statusMessage != null) "$statusCode $statusMessage" else statusCode.toString()
-    val contentColor = colors.statusColor(statusCode)
-    val containerColor = colors.statusContainerColor(statusCode)
+    val text = if (statusCode == null) "---" else if (showMessage && statusMessage != null) "$statusCode $statusMessage" else statusCode.toString()
+    val containerColor = if (statusCode == null) colors.onSurfaceVariant else colors.statusColor(statusCode)
 
     Box(
         modifier = modifier
-            .background(containerColor, RoundedCornerShape(6.dp))
-            .border(0.5.dp, contentColor.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+            .background(containerColor, RoundedCornerShape(4.dp))
             .padding(horizontal = 8.dp, vertical = 2.dp)
     ) {
         Text(
             text = text,
-            color = contentColor,
-            fontSize = 11.sp,
+            color = Color(0xFF0F111A),
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.5.sp
         )
