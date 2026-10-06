@@ -188,7 +188,7 @@ fun RequestDetailScreen(
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = colors.surface)
                 )
             },
-            containerColor = colors.surface,
+            containerColor = colors.background,
             modifier = modifier
         ) { paddingValues ->
             if (currentEvent == null) {
@@ -245,8 +245,8 @@ fun RequestDetailScreen(
                     }
 
                     HorizontalDivider(
-                        color = colors.outline.copy(alpha = 0.4f),
-                        thickness = 0.5.dp,
+                        color = colors.divider,
+                        thickness = 1.dp,
                         modifier = Modifier.padding(top = 4.dp)
                     )
 

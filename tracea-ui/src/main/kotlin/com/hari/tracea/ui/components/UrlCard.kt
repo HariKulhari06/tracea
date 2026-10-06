@@ -70,7 +70,7 @@ fun UrlCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(colors.surface)
-            .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+            .border(1.dp, colors.divider, RoundedCornerShape(10.dp))
     ) {
         // Header
         Row(
@@ -111,13 +111,13 @@ fun UrlCard(
             }
         }
 
-        HorizontalDivider(color = colors.outline.copy(alpha = 0.4f), thickness = 0.5.dp)
+        HorizontalDivider(color = colors.divider, thickness = 1.dp)
 
         // Full URL Text area with complete wrapping and text selection
         SelectionContainer {
             Text(
                 text = url.ifEmpty { "(empty)" },
-                color = colors.onSurface,
+                color = colors.onBackground,
                 fontSize = 13.sp,
                 fontFamily = FontFamily.Monospace,
                 lineHeight = 18.sp,

@@ -1,6 +1,7 @@
 package com.hari.tracea.ui.screens.detail.tabs
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,35 +54,6 @@ fun OverviewTab(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        if (event.isMocked) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(colors.surfaceVariant, shape = RoundedCornerShape(8.dp))
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "🎭",
-                    fontSize = 20.sp,
-                    modifier = Modifier.padding(end = 12.dp)
-                )
-                Column {
-                    Text(
-                        text = "Mocked Response",
-                        color = colors.sectionHeader,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "This transaction was simulated locally via a Tracea Mock Rule.",
-                        color = colors.onSurfaceVariant,
-                        fontSize = 11.sp
-                    )
-                }
-            }
-        }
-
         // Request URL Card
         SectionHeader(title = "Request URL")
         UrlCard(method = event.method, url = event.url)
@@ -155,11 +127,13 @@ fun OverviewTab(
                         }
                         CodeBlock(
                             content = bodyText,
+                            title = "JSON • ${SizeFormatter.format(resBody.size)}",
                             onCopy = { clipboardManager.setText(AnnotatedString(resBody.content)) }
                         )
                     } else {
                         CodeBlock(
                             content = resBody.content,
+                            title = "${resBody.contentType.name.uppercase()} • ${SizeFormatter.format(resBody.size)}",
                             onCopy = { clipboardManager.setText(AnnotatedString(resBody.content)) }
                         )
                     }
@@ -169,6 +143,7 @@ fun OverviewTab(
                         title = "File Reference",
                         items = listOf(
                             "Path" to resBody.path,
+                            "Type" to resBody.contentType.name,
                             "Size" to SizeFormatter.format(resBody.size)
                         )
                     )
@@ -178,7 +153,8 @@ fun OverviewTab(
                         title = "Truncated Payload",
                         items = listOf(
                             "Captured Size" to SizeFormatter.format(resBody.capturedSize),
-                            "Actual Size" to SizeFormatter.format(resBody.actualSize)
+                            "Actual Size" to SizeFormatter.format(resBody.actualSize),
+                            "Content-Type" to resBody.contentType.name
                         )
                     )
                 }
@@ -186,6 +162,7 @@ fun OverviewTab(
                     KeyValueCard(
                         title = "Binary Payload",
                         items = listOf(
+                            "Type" to resBody.contentType.name,
                             "Size" to SizeFormatter.format(resBody.size)
                         )
                     )
@@ -200,6 +177,7 @@ fun OverviewTab(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
                     .background(colors.surface)
+                    .border(1.dp, colors.divider, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             )
         }

@@ -68,7 +68,7 @@ fun TimingTab(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
                     .background(colors.surface)
-                    .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                    .border(1.dp, colors.divider, RoundedCornerShape(10.dp))
             ) {
                 Row(
                     modifier = Modifier
@@ -118,7 +118,7 @@ fun TimingTab(
                     }
                 }
 
-                HorizontalDivider(color = colors.outline.copy(alpha = 0.4f), thickness = 0.5.dp)
+                HorizontalDivider(color = colors.divider, thickness = 1.dp)
 
                 // Unified Waterfall Visualizer Bar
                 Column(
@@ -170,19 +170,19 @@ fun TimingTab(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
                     .background(colors.surface)
-                    .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                    .border(1.dp, colors.divider, RoundedCornerShape(10.dp))
             ) {
                 TimingPhaseRow(label = "DNS Lookup", ms = timing.dnsMs, totalMs = total, color = Color.Yellow)
-                HorizontalDivider(color = colors.outline.copy(alpha = 0.25f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                HorizontalDivider(color = colors.divider.copy(alpha = 0.6f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
 
                 TimingPhaseRow(label = "TCP Connect", ms = timing.connectMs, totalMs = total, color = Color(0xFFFF9500))
-                HorizontalDivider(color = colors.outline.copy(alpha = 0.25f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                HorizontalDivider(color = colors.divider.copy(alpha = 0.6f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
 
                 TimingPhaseRow(label = "TLS Handshake", ms = timing.tlsMs, totalMs = total, color = Color(0xFF9C27B0))
-                HorizontalDivider(color = colors.outline.copy(alpha = 0.25f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                HorizontalDivider(color = colors.divider.copy(alpha = 0.6f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
 
                 TimingPhaseRow(label = "Waiting (TTFB)", ms = timing.waitingMs, totalMs = total, color = Color(0xFF4EC9B0))
-                HorizontalDivider(color = colors.outline.copy(alpha = 0.25f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
+                HorizontalDivider(color = colors.divider.copy(alpha = 0.6f), thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 14.dp))
 
                 TimingPhaseRow(label = "Content Download", ms = timing.downloadMs, totalMs = total, color = Color(0xFF569CD6))
             }
@@ -235,7 +235,7 @@ private fun TimingPhaseRow(
 
             Text(
                 text = label,
-                color = colors.onSurface,
+                color = colors.onBackground,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(start = 8.dp)
@@ -245,7 +245,7 @@ private fun TimingPhaseRow(
 
             Text(
                 text = "$valMs ms",
-                color = colors.onSurface,
+                color = colors.onBackground,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.Monospace

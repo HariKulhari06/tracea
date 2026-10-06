@@ -85,7 +85,7 @@ fun HeadersSection(
             .padding(vertical = 8.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(colors.surface)
-            .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+            .border(1.dp, colors.divider, RoundedCornerShape(10.dp))
     ) {
         // Header Bar
         Row(
@@ -97,7 +97,7 @@ fun HeadersSection(
         ) {
             Text(
                 text = title,
-                color = colors.onSurface,
+                color = colors.onBackground,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -160,7 +160,7 @@ fun HeadersSection(
             }
         }
 
-        HorizontalDivider(color = colors.outline.copy(alpha = 0.4f), thickness = 0.5.dp)
+        HorizontalDivider(color = colors.divider, thickness = 1.dp)
 
         val displayHeaders = if (expanded || headers.size <= 5) {
             headers
@@ -190,9 +190,9 @@ fun HeadersSection(
                     ) {
                         Text(
                             text = key,
-                            color = colors.onSurfaceVariant, // Use secondary color for header keys
+                            color = colors.primary,
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.SemiBold,
                             fontFamily = FontFamily.Monospace
                         )
 
@@ -212,7 +212,7 @@ fun HeadersSection(
                     SelectionContainer {
                         Text(
                             text = valString,
-                            color = colors.onSurface,
+                            color = colors.onBackground,
                             fontSize = 13.sp,
                             fontFamily = FontFamily.Monospace,
                             lineHeight = 18.sp
@@ -222,7 +222,7 @@ fun HeadersSection(
 
                 if (index < entriesList.size - 1) {
                     HorizontalDivider(
-                        color = colors.outline.copy(alpha = 0.25f),
+                        color = colors.divider.copy(alpha = 0.6f),
                         thickness = 0.5.dp,
                         modifier = Modifier.padding(horizontal = 14.dp)
                     )

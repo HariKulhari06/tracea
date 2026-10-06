@@ -36,7 +36,7 @@ fun KeyValueCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(colors.surface)
-            .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+            .border(1.dp, colors.divider, RoundedCornerShape(10.dp))
     ) {
         if (!title.isNullOrEmpty()) {
             Row(
@@ -48,12 +48,12 @@ fun KeyValueCard(
             ) {
                 Text(
                     text = title,
-                    color = colors.onSurface,
+                    color = colors.onBackground,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
-            HorizontalDivider(color = colors.outline.copy(alpha = 0.4f), thickness = 0.5.dp)
+            HorizontalDivider(color = colors.divider, thickness = 1.dp)
         }
 
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -67,8 +67,8 @@ fun KeyValueCard(
                 ) {
                     Text(
                         text = key,
-                        color = colors.onSurfaceVariant,
-                        fontSize = 13.sp,
+                        color = colors.onSurface,
+                        fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.Medium
                     )
@@ -78,7 +78,7 @@ fun KeyValueCard(
                     SelectionContainer {
                         Text(
                             text = value,
-                            color = colors.onSurface,
+                            color = colors.onBackground,
                             fontSize = 13.sp,
                             fontFamily = FontFamily.Monospace,
                             fontWeight = FontWeight.SemiBold,
@@ -89,7 +89,7 @@ fun KeyValueCard(
 
                 if (index < items.size - 1) {
                     HorizontalDivider(
-                        color = colors.outline.copy(alpha = 0.25f),
+                        color = colors.divider.copy(alpha = 0.6f),
                         thickness = 0.5.dp,
                         modifier = Modifier.padding(horizontal = 14.dp)
                     )

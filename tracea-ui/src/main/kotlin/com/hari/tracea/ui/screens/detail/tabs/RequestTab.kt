@@ -58,6 +58,7 @@ fun RequestTab(
 
         // Query Parameters
         if (event.queryParameters.isNotEmpty()) {
+            SectionHeader(title = "Query Parameters")
             QueryParamsSection(queryParameters = event.queryParameters)
         }
 
@@ -70,7 +71,6 @@ fun RequestTab(
                 clipboardManager.setText(AnnotatedString(text))
             }
         )
-
 
         // Request Body
         event.requestBody?.let { body ->
@@ -88,13 +88,17 @@ fun RequestTab(
                     }
                     CodeBlock(
                         content = formatted,
+                        title = "${body.contentType.name.uppercase()} • ${SizeFormatter.format(body.size)}",
                         onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
                     )
                 }
                 is BodyData.Binary -> {
                     KeyValueCard(
                         title = "Binary Body",
-                        items = listOf("Size" to SizeFormatter.format(body.size))
+                        items = listOf(
+                            "Type" to body.contentType.name,
+                            "Size" to SizeFormatter.format(body.size)
+                        )
                     )
                 }
                 is BodyData.Truncated -> {
@@ -102,7 +106,8 @@ fun RequestTab(
                         title = "Truncated Body",
                         items = listOf(
                             "Captured Size" to SizeFormatter.format(body.capturedSize),
-                            "Actual Size" to SizeFormatter.format(body.actualSize)
+                            "Actual Size" to SizeFormatter.format(body.actualSize),
+                            "Content-Type" to body.contentType.name
                         )
                     )
                 }
@@ -111,6 +116,7 @@ fun RequestTab(
                         title = "File Reference",
                         items = listOf(
                             "Path" to body.path,
+                            "Type" to body.contentType.name,
                             "Size" to SizeFormatter.format(body.size)
                         )
                     )
