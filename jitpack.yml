@@ -1,6 +1,8 @@
 jdk:
   - openjdk21
 before_install:
+  - mkdir -p gradle/wrapper
+  - test -s gradle/wrapper/gradle-wrapper.jar || curl -sLo gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/HariKulhari06/tracea/main/gradle/wrapper/gradle-wrapper.jar
   - chmod +x gradlew
 install:
   - ./gradlew publishToMavenLocal -x test
