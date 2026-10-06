@@ -95,7 +95,7 @@ fun SummaryCardsRow(
                 label = "TOTAL SIZE",
                 value = SizeFormatter.format(totalSize),
                 color = Color(0xFF569CD6),
-                valueColor = colors.onSurface,
+                valueColor = colors.onBackground,
                 modifier = Modifier.weight(1f)
             )
             SummaryCard(
@@ -103,7 +103,7 @@ fun SummaryCardsRow(
                 label = "TIME",
                 value = formattedTime,
                 color = colors.onSurfaceVariant,
-                valueColor = colors.onSurface,
+                valueColor = colors.onBackground,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -153,7 +153,7 @@ fun SummaryCardsRow(
                 label = "TOTAL SIZE",
                 value = size,
                 color = Color(0xFF569CD6),
-                valueColor = colors.onSurface,
+                valueColor = colors.onBackground,
                 modifier = Modifier.weight(1f)
             )
             SummaryCard(
@@ -161,7 +161,7 @@ fun SummaryCardsRow(
                 label = "TIME",
                 value = time,
                 color = colors.onSurfaceVariant,
-                valueColor = colors.onSurface,
+                valueColor = colors.onBackground,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -182,7 +182,7 @@ private fun SummaryCard(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .background(colors.surface)
-            .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+            .border(1.dp, colors.divider, RoundedCornerShape(10.dp))
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {

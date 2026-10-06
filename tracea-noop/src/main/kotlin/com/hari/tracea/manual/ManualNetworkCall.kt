@@ -7,6 +7,14 @@ class ManualNetworkCall internal constructor() {
 
     fun requestHeaders(headers: Map<String, String>): ManualNetworkCall = this
 
+    fun timing(
+        dnsMs: Long? = null,
+        connectMs: Long? = null,
+        tlsMs: Long? = null,
+        waitingMs: Long? = null,
+        downloadMs: Long? = null
+    ): ManualNetworkCall = this
+
     fun requestBody(body: String, contentType: String? = null): ManualNetworkCall = this
 
     fun response(

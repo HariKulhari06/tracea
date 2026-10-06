@@ -44,6 +44,36 @@ class ManualNetworkCall internal constructor(
     private var error: NetworkError? = null
     private val startTime = System.currentTimeMillis()
     private var endTime: Long? = null
+    private var dnsMs: Long? = null
+    private var connectMs: Long? = null
+    private var tlsMs: Long? = null
+    private var waitingMs: Long? = null
+    private var downloadMs: Long? = null
+
+    /**
+     * Sets detailed network timing breakdown for testing or manual logging.
+     *
+     * @param dnsMs DNS lookup duration in ms
+     * @param connectMs TCP connect duration in ms
+     * @param tlsMs TLS handshake duration in ms
+     * @param waitingMs Time to first byte (TTFB) in ms
+     * @param downloadMs Content download duration in ms
+     * @return This builder instance for chaining
+     */
+    fun timing(
+        dnsMs: Long? = null,
+        connectMs: Long? = null,
+        tlsMs: Long? = null,
+        waitingMs: Long? = null,
+        downloadMs: Long? = null
+    ): ManualNetworkCall {
+        this.dnsMs = dnsMs
+        this.connectMs = connectMs
+        this.tlsMs = tlsMs
+        this.waitingMs = waitingMs
+        this.downloadMs = downloadMs
+        return this
+    }
 
     /**
      * Sets request headers for the network call.
@@ -177,7 +207,12 @@ class ManualNetworkCall internal constructor(
 
         val timing = NetworkTiming(
             startTimestamp = startTime,
-            endTimestamp = now
+            endTimestamp = now,
+            dnsMs = dnsMs,
+            connectMs = connectMs,
+            tlsMs = tlsMs,
+            waitingMs = waitingMs,
+            downloadMs = downloadMs
         )
 
         val event = NetworkEvent(

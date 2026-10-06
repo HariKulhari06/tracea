@@ -92,7 +92,7 @@ fun TimelineScreen(
                 windowInsets = WindowInsets.statusBars
             )
         },
-        containerColor = colors.surface,
+        containerColor = colors.background,
         modifier = modifier
     ) { paddingValues ->
         Column(
@@ -122,7 +122,7 @@ fun TimelineScreen(
                     StatCard(
                         title = "ERRORS",
                         value = "${stats.errorCount}",
-                        color = if (stats.errorCount > 0) colors.statusError else colors.onSurfaceVariant,
+                        color = if (stats.errorCount > 0) colors.statusError else colors.onBackground,
                         modifier = Modifier.weight(1f)
                     )
                     StatCard(
@@ -153,13 +153,13 @@ fun TimelineScreen(
                     StatCard(
                         title = "STATUS",
                         value = if (stats.totalRequests > 0) "Active" else "Idle",
-                        color = if (stats.totalRequests > 0) Color(0xFF4EC9B0) else colors.onSurfaceVariant,
+                        color = Color(0xFF4EC9B0),
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
 
-            HorizontalDivider(color = colors.outline.copy(alpha = 0.4f), thickness = 0.5.dp)
+            HorizontalDivider(color = colors.divider, thickness = 1.dp)
 
             // Search Bar
             SearchBar(
@@ -210,7 +210,7 @@ private fun StatCard(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
             .background(colors.surface)
-            .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
+            .border(1.dp, colors.divider, RoundedCornerShape(8.dp))
             .padding(8.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
@@ -246,6 +246,7 @@ private fun TimelineRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .height(androidx.compose.foundation.layout.IntrinsicSize.Min)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.Top,
@@ -254,21 +255,21 @@ private fun TimelineRow(
         // Timestamp
         Text(
             text = formattedTime,
-            color = colors.onSurfaceVariant,
+            color = colors.onSurface,
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.Monospace,
             textAlign = TextAlign.End,
             modifier = Modifier
                 .width(82.dp)
-                .padding(top = 4.dp)
+                .padding(top = 2.dp)
         )
 
-        // Connector line and dot
+        // Timeline connector
         Box(
             modifier = Modifier
                 .width(10.dp)
-                .height(48.dp),
+                .fillMaxHeight(),
             contentAlignment = Alignment.TopCenter
         ) {
             // Vertical line
@@ -276,12 +277,12 @@ private fun TimelineRow(
                 modifier = Modifier
                     .width(2.dp)
                     .fillMaxHeight()
-                    .background(colors.outline.copy(alpha = 0.4f))
+                    .background(colors.divider)
             )
             // Dot
             Box(
                 modifier = Modifier
-                    .padding(top = 6.dp)
+                    .padding(top = 4.dp)
                     .size(8.dp)
                     .clip(CircleShape)
                     .background(colors.methodColor(event.method))
@@ -293,7 +294,7 @@ private fun TimelineRow(
             modifier = Modifier
                 .weight(1f)
                 .padding(bottom = 14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(5.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -305,7 +306,7 @@ private fun TimelineRow(
                 val displayPath = if (event.path.isEmpty()) "/" else event.path
                 Text(
                     text = displayPath,
-                    color = colors.onSurface,
+                    color = colors.onBackground,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     fontFamily = FontFamily.Monospace,

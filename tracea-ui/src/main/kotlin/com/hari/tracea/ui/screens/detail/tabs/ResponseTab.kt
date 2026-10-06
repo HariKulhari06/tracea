@@ -75,7 +75,7 @@ fun ResponseTab(
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
                     .background(colors.surface)
-                    .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+                    .border(1.dp, colors.divider, RoundedCornerShape(10.dp))
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -92,7 +92,7 @@ fun ResponseTab(
                         Icon(
                             imageVector = Icons.Default.HourglassBottom,
                             contentDescription = null,
-                            tint = colors.onSurfaceVariant,
+                            tint = colors.onSurface,
                             modifier = Modifier.size(13.dp)
                         )
                         Text(
@@ -111,7 +111,7 @@ fun ResponseTab(
                     Icon(
                         imageVector = Icons.Default.ArrowDownward,
                         contentDescription = null,
-                        tint = colors.onSurfaceVariant,
+                        tint = colors.onSurface,
                         modifier = Modifier.size(13.dp)
                     )
                     Text(
@@ -214,15 +214,26 @@ fun ResponseTab(
                                 } else {
                                     body.content
                                 }
-                                CodeBlock(content = formatted, onCopy = { clipboardManager.setText(AnnotatedString(body.content)) })
+                                CodeBlock(
+                                    content = formatted,
+                                    title = "JSON • ${SizeFormatter.format(body.size)}",
+                                    onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
+                                )
                             } else {
-                                CodeBlock(content = body.content, onCopy = { clipboardManager.setText(AnnotatedString(body.content)) })
+                                CodeBlock(
+                                    content = body.content,
+                                    title = "${body.contentType.name.uppercase()} • ${SizeFormatter.format(body.size)}",
+                                    onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
+                                )
                             }
                         }
                         is BodyData.Binary -> {
                             KeyValueCard(
                                 title = "Binary Body",
-                                items = listOf("Size" to SizeFormatter.format(body.size))
+                                items = listOf(
+                                    "Type" to body.contentType.name,
+                                    "Size" to SizeFormatter.format(body.size)
+                                )
                             )
                         }
                         is BodyData.Truncated -> {
@@ -230,7 +241,8 @@ fun ResponseTab(
                                 title = "Truncated Body",
                                 items = listOf(
                                     "Captured Size" to SizeFormatter.format(body.capturedSize),
-                                    "Actual Size" to SizeFormatter.format(body.actualSize)
+                                    "Actual Size" to SizeFormatter.format(body.actualSize),
+                                    "Content-Type" to body.contentType.name
                                 )
                             )
                         }
@@ -239,6 +251,7 @@ fun ResponseTab(
                                 title = "File Reference",
                                 items = listOf(
                                     "Path" to body.path,
+                                    "Type" to body.contentType.name,
                                     "Size" to SizeFormatter.format(body.size)
                                 )
                             )
@@ -279,7 +292,7 @@ fun ResponseTab(
                     SelectionContainer {
                         Text(
                             text = msg,
-                            color = colors.onSurface,
+                            color = colors.onBackground,
                             fontSize = 13.sp,
                             lineHeight = 18.sp
                         )

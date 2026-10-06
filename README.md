@@ -89,10 +89,10 @@ dependencyResolutionManagement {
 ```kotlin
 dependencies {
     // Full debugger in debug builds
-    debugImplementation("com.github.HariKulhari06:tracea:1.5.0")
+    debugImplementation("com.github.HariKulhari06:tracea:1.6.0")
 
     // (Optional) Zero-overhead stub for release builds
-    releaseImplementation("com.github.HariKulhari06:tracea-noop:1.5.0")
+    releaseImplementation("com.github.HariKulhari06:tracea-noop:1.6.0")
 }
 ```
 

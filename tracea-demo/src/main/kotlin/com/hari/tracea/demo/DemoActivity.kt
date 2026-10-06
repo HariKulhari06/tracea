@@ -194,6 +194,13 @@ fun DemoScreen(apiService: DemoApiService) {
                     showToast(if (result.isSuccess) "Image Download Success" else "Image Download Failed")
                 }
             }
+
+            DemoButton("14. 🎯 Full Detail Test (All Fields & Data)") {
+                scope.launch {
+                    apiService.fullParityAllDataScenario()
+                    showToast("🎯 Full Detail Test Emitted (Headers, Query, Bodies, Cookies, Waterfall)")
+                }
+            }
             
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             

@@ -77,7 +77,7 @@ fun QueryParamsSection(
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .background(colors.surface)
-            .border(1.dp, colors.outline.copy(alpha = 0.4f), RoundedCornerShape(10.dp))
+            .border(1.dp, colors.divider, RoundedCornerShape(10.dp))
     ) {
         // Header Bar
         Row(
@@ -89,7 +89,7 @@ fun QueryParamsSection(
         ) {
             Text(
                 text = "Query Parameters",
-                color = colors.onSurface,
+                color = colors.onBackground,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -138,7 +138,7 @@ fun QueryParamsSection(
             }
         }
 
-        HorizontalDivider(color = colors.outline.copy(alpha = 0.4f), thickness = 0.5.dp)
+        HorizontalDivider(color = colors.divider, thickness = 1.dp)
 
         // Query Param Rows
         val sortedKeys = queryParameters.keys.sorted()
@@ -183,7 +183,7 @@ fun QueryParamsSection(
                     SelectionContainer {
                         Text(
                             text = valString,
-                            color = colors.onSurface,
+                            color = colors.onBackground,
                             fontSize = 13.sp,
                             fontFamily = FontFamily.Monospace,
                             lineHeight = 18.sp
@@ -193,7 +193,7 @@ fun QueryParamsSection(
 
                 if (index < sortedKeys.size - 1) {
                     HorizontalDivider(
-                        color = colors.outline.copy(alpha = 0.25f),
+                        color = colors.divider.copy(alpha = 0.6f),
                         thickness = 0.5.dp,
                         modifier = Modifier.padding(horizontal = 14.dp)
                     )

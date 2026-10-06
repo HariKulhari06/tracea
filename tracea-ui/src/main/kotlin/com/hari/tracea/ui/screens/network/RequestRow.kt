@@ -61,74 +61,65 @@ fun RequestRow(
             modifier = Modifier
                 .padding(horizontal = 12.dp, vertical = 9.dp)
         ) {
-            // Top Row: Method, Path, Status
+            // Method, Path, and Status Badges
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 MethodBadge(method = event.method)
-                
-                Spacer(modifier = Modifier.width(12.dp))
-                
+
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val displayPath = if (event.path.isEmpty()) "/" else event.path
                     Text(
-                        text = event.path,
-                        color = colors.onSurface,
-                        fontSize = 15.sp,
+                        text = displayPath,
+                        color = colors.onBackground,
+                        fontSize = 14.sp,
                         fontFamily = FontFamily.Monospace,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
                     )
+
                     if (event.queryParameters.isNotEmpty()) {
                         Text(
                             text = "?...",
                             color = colors.onSurfaceVariant,
                             fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(start = 2.dp)
+                        )
+                    }
+                }
+
+                if (event.isMocked) {
+                    Box(
+                        modifier = Modifier
+                            .background(Color(0xFFC586C0), RoundedCornerShape(50))
+                            .padding(horizontal = 5.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = "MOCK",
+                            color = Color.White,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    if (event.isMocked) {
-                        Box(
-                            modifier = Modifier
-                                .background(Color(0xFFC586C0), RoundedCornerShape(50))
-                                .padding(horizontal = 6.dp, vertical = 1.dp)
-                        ) {
-                            Text(
-                                text = "MOCK",
-                                color = Color.White,
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                    StatusBadge(statusCode = event.statusCode)
-                }
+                StatusBadge(statusCode = event.statusCode)
             }
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Middle Row: URL/Host
-            val displayUrl = if (event.url.length > 50) {
-                event.url.take(25) + "..." + event.url.takeLast(20)
-            } else {
-                event.url
-            }
-
+            // Full URL (compacted, 1 line, no jitter)
             Text(
-                text = displayUrl,
+                text = event.url,
                 color = colors.onSurfaceVariant,
                 fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
@@ -139,68 +130,71 @@ fun RequestRow(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Bottom Row: Time, Size, Duration
+            // Metadata Footer: Time, Size, Duration (evenly distributed)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Schedule,
                         contentDescription = null,
-                        tint = colors.onSurfaceVariant,
-                        modifier = Modifier.padding(end = 4.dp).height(12.dp).width(12.dp)
+                        tint = colors.onSurface,
+                        modifier = Modifier.size(11.dp)
                     )
                     Text(
                         text = formattedTime,
-                        color = colors.onSurfaceVariant.copy(alpha = 0.7f),
+                        color = colors.onSurface,
                         fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Medium
+                        fontFamily = FontFamily.Monospace
                     )
                 }
 
+                Spacer(modifier = Modifier.weight(1f))
+
+                val totalSize = event.requestSize + event.responseSize
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    val totalSize = event.requestSize + event.responseSize
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.SwapVert,
-                            contentDescription = null,
-                            tint = colors.onSurfaceVariant,
-                            modifier = Modifier.padding(end = 4.dp).height(12.dp).width(12.dp)
-                        )
-                        InfoChip(text = SizeFormatter.format(totalSize))
-                    }
-                    
-                    event.timing.totalMs?.let { duration ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Timer,
-                                contentDescription = null,
-                                tint = colors.onSurfaceVariant,
-                                modifier = Modifier.padding(end = 4.dp).height(12.dp).width(12.dp)
-                            )
-                            InfoChip(text = DurationFormatter.format(duration))
-                        }
-                    }
+                    Icon(
+                        imageVector = Icons.Default.SwapVert,
+                        contentDescription = null,
+                        tint = colors.onSurface,
+                        modifier = Modifier.size(11.dp)
+                    )
+                    Text(
+                        text = SizeFormatter.format(totalSize),
+                        color = colors.onSurface,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                val totalMs = event.timing.totalMs ?: 0L
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Timer,
+                        contentDescription = null,
+                        tint = colors.onSurface,
+                        modifier = Modifier.size(11.dp)
+                    )
+                    Text(
+                        text = DurationFormatter.format(totalMs),
+                        color = colors.onSurface,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
                 }
             }
         }
     }
-}
-
-@Composable
-private fun InfoChip(text: String) {
-    val colors = LocalDebuggerColors.current
-    Text(
-        text = text,
-        color = colors.onSurfaceVariant,
-        fontSize = 11.sp,
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Medium
-    )
 }

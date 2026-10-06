@@ -163,7 +163,7 @@ fun SettingsScreen(
             SettingsSection(title = "ABOUT TRACEA") {
                 NavigationRow(
                     title = "SDK Version",
-                    value = "1.5.0",
+                    value = "1.6.0",
                     showChevron = false
                 )
                 NavigationRow(
