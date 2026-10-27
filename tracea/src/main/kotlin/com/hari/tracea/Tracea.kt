@@ -98,6 +98,14 @@ object Tracea {
                 com.hari.tracea.ui.overlay.FloatingButtonManager.updateRequestCount(events.size)
             }
         }
+
+        // Install interceptor for auto-instrumentation (Gradle plugin bytecode injection)
+        val autoInterceptor = TraceaInterceptor(_collector, effectiveConfig)
+        _interceptor = autoInterceptor
+        com.hari.tracea.okhttp.TraceaInterceptorProvider.install(autoInterceptor)
+
+        // Install URLConnection tracker for HttpURLConnection/HttpsURLConnection auto-instrumentation
+        com.hari.tracea.urlconnection.TraceaUrlConnectionTracker.install(_collector, effectiveConfig)
         
         initialized = true
     }

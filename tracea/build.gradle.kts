@@ -41,6 +41,7 @@ dependencies {
     api(project(":tracea-storage"))
     api(project(":tracea-web"))
     api(project(":tracea-ui"))
+    api(project(":tracea-urlconnection"))
     
     implementation(libs.core.ktx)
     implementation(libs.okhttp)
