@@ -35,6 +35,8 @@ Existing Android network debugging tools each have tradeoffs. Tracea is built to
 | :--- | :---: | :---: | :---: | :---: | :---: |
 | **In-App UI (No external tool)** | ✅ | ✅ | ❌ | ❌ | ❌ |
 | **Zero proxy/SSL setup** | ✅ | ✅ | ❌ | ✅ | ✅ |
+| **Automatic Capture (Gradle Plugin)** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **3rd-Party SDK Network Capture** | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **Client-side API mocking** | ✅ | ❌ | ✅ | ❌ | ❌ |
 | **Collapsible JSON tree viewer** | ✅ | ❌ | ✅ | ✅ | ✅ |
 | **HAR file export** | ✅ | ❌ | ✅ | ❌ | ❌ |
@@ -55,6 +57,7 @@ Existing Android network debugging tools each have tradeoffs. Tracea is built to
 
 ## ✨ Features
 
+- ⚡ **Automatic Network Capture (Gradle Plugin)** — Transparently instruments OkHttp (`OkHttpClient.Builder.build()`) and `HttpURLConnection` / `HttpsURLConnection` at the bytecode level across your entire app and all 3rd-party SDKs (Mixpanel, Adobe Analytics, Amplitude, etc.). Zero manual interceptors required.
 - 🔍 **Real-time HTTP/HTTPS Traffic Inspection** — Monitor all OkHttp & Retrofit network calls with color-coded status badges, request/response headers, and formatted body payloads.
 - 🎭 **Dynamic API Response Mocking** — Intercept requests by URL path and HTTP method. Override status codes (401, 500, etc.), inject custom JSON bodies, and simulate network latency — all without touching backend code.
 - 📉 **DevTools-Style Timing Waterfall** — Visualize per-request latency with DNS lookup, TCP connect, TLS handshake, TTFB, and download breakdowns.
@@ -68,41 +71,85 @@ Existing Android network debugging tools each have tradeoffs. Tracea is built to
 
 ---
 
-## 📦 Installation
+## 📦 Installation & Setup
 
-### Step 1: Add JitPack Repository
+You can integrate Tracea either **automatically** via the Tracea Gradle Plugin (zero code changes, captures 3rd-party SDKs too), or **manually** by attaching an OkHttp interceptor.
 
-Add the **JitPack** repository to your root `settings.gradle.kts`:
+---
+
+### Option A: Automatic Network Capture via Gradle Plugin (Recommended)
+
+The **Tracea Gradle Plugin** uses Android Gradle Plugin (AGP 8.0+) ASM bytecode manipulation to automatically instrument your app at compile-time:
+- 🚀 **Zero Interceptor Code** — No need to manually add `.addInterceptor(Tracea.interceptor)` to your `OkHttpClient` builders.
+- 🌐 **3rd-Party SDK Capture** — Intercepts requests made by internal/external SDKs (e.g., Adobe Analytics, Mixpanel, Firebase, Amplitude, Coil, Retrofit) whether they use OkHttp or `HttpURLConnection` / `HttpsURLConnection`.
+- 🛡️ **Zero Release Overhead** — Bytecode transformation is only applied to debuggable variants. In release builds, nothing is modified.
+
+#### Step 1: Configure `settings.gradle.kts`
+
+Add JitPack to `pluginManagement` and configure the plugin resolution strategy:
 
 ```kotlin
+pluginManagement {
+    repositories {
+        maven { url = java.net.URI("https://jitpack.io") }
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "com.hari.tracea") {
+                useModule("com.github.HariKulhari06.tracea:tracea-gradle-plugin:${requested.version}")
+            }
+        }
+    }
+}
+
 dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") }
+        maven { url = java.net.URI("https://jitpack.io") }
     }
 }
 ```
 
-### Step 2: Add Tracea Dependency
+#### Step 2: Add Plugin to Root `build.gradle.kts`
 
 ```kotlin
-dependencies {
-    // Full debugger in debug builds
-    debugImplementation("com.github.HariKulhari06:tracea:1.6.1")
-
-    // (Optional) Zero-overhead stub for release builds
-    releaseImplementation("com.github.HariKulhari06:tracea-noop:1.6.1")
+plugins {
+    id("com.hari.tracea") version "1.7.0-alpha02" apply false
 }
 ```
 
-> **Note**: The `tracea-noop` artifact is optional but recommended. It ensures all `Tracea.*` calls compile in release builds as empty stubs with zero APK size impact.
+*(Or via Version Catalog `libs.versions.toml`:)*
+```toml
+[versions]
+tracea = "1.7.0-alpha02"
 
----
+[plugins]
+tracea = { id = "com.hari.tracea", version.ref = "tracea" }
+```
 
-## 🚀 Quick Start (OkHttp / Retrofit)
+#### Step 3: Apply in `app/build.gradle.kts`
 
-### 1. Initialize in Application
+```kotlin
+plugins {
+    id("com.android.application")
+    id("com.hari.tracea")
+}
+
+dependencies {
+    // Debugger in debug builds
+    debugImplementation("com.github.HariKulhari06.tracea:tracea:1.7.0-alpha02")
+
+    // Zero-overhead stub in release builds (12 KB, 0 dependencies)
+    releaseImplementation("com.github.HariKulhari06.tracea:tracea-noop:1.7.0-alpha02")
+}
+```
+
+#### Step 4: Initialize in `Application`
 
 ```kotlin
 class MyApplication : Application() {
@@ -120,7 +167,48 @@ class MyApplication : Application() {
 }
 ```
 
-### 2. Attach OkHttp Interceptor
+**That's it!** All network requests — whether direct OkHttp calls, `URL.openConnection()` calls, or background requests fired by third-party analytics/ad SDKs — are now captured automatically!
+
+#### (Optional) Plugin Configuration DSL
+
+You can customize the plugin behavior in `app/build.gradle.kts`:
+
+```kotlin
+tracea {
+    // Enable or disable bytecode instrumentation (default: true)
+    enabled.set(true)
+
+    // Optional: exclude specific packages from instrumentation
+    excludePackages.set(listOf(
+        "com.example.internal.security"
+    ))
+}
+```
+
+---
+
+### Option B: Manual Setup (Without Gradle Plugin)
+
+If you prefer not to use the Gradle plugin, you can manually attach Tracea's interceptor to your `OkHttpClient`:
+
+#### 1. Add Dependencies
+
+In `app/build.gradle.kts`:
+
+```kotlin
+dependencies {
+    debugImplementation("com.github.HariKulhari06.tracea:tracea:1.7.0-alpha02")
+    releaseImplementation("com.github.HariKulhari06.tracea:tracea-noop:1.7.0-alpha02")
+}
+```
+
+#### 2. Initialize in `Application.onCreate()`
+
+```kotlin
+Tracea.initialize(context = this)
+```
+
+#### 3. Attach OkHttp Interceptor Manually
 
 ```kotlin
 val okHttpClient = OkHttpClient.Builder()
@@ -129,7 +217,7 @@ val okHttpClient = OkHttpClient.Builder()
     .build()
 ```
 
-That's it! Every network call made through this OkHttp client will now appear in the Tracea inspector.
+> **Note**: Manual setup only captures OkHttp requests made through that specific `OkHttpClient` instance. It will not capture traffic from 3rd-party SDKs or `HttpURLConnection`. Use the Gradle plugin (Option A) for complete automatic coverage.
 
 ---
 
@@ -267,6 +355,8 @@ Tracea is built with a clean, modular architecture:
 | **`tracea`** | Public facade API — the single entry point for developers |
 | **`tracea-core`** | Data pipeline, models, redaction engine, and mock engine |
 | **`tracea-okhttp`** | OkHttp `Interceptor` and `EventListener` adapters |
+| **`tracea-urlconnection`** | Bytecode tracker wrapping `HttpURLConnection` and `HttpsURLConnection` |
+| **`tracea-gradle-plugin`** | AGP 8.0+ ASM bytecode plugin for automatic OkHttp & HttpURLConnection capture |
 | **`tracea-manual`** | Builder API for non-OkHttp network stacks |
 | **`tracea-storage`** | Room database persistence with automatic retention |
 | **`tracea-ui`** | Dark-mode Jetpack Compose inspector interface |
