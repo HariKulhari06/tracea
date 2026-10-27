@@ -176,12 +176,17 @@ You can customize the plugin behavior in `app/build.gradle.kts`:
 ```kotlin
 tracea {
     // Enable or disable bytecode instrumentation (default: true)
-    enabled.set(true)
+    enabled = true
+
+    // Whether to instrument 3rd-party dependencies (default: true).
+    // Set to true to automatically capture network calls from 3rd-party SDKs (Mixpanel, etc.).
+    // Set to false to only scan project code for maximum incremental build speed.
+    instrumentDependencies = true
 
     // Optional: exclude specific packages from instrumentation
-    excludePackages.set(listOf(
+    excludePackages = listOf(
         "com.example.internal.security"
-    ))
+    )
 }
 ```
 

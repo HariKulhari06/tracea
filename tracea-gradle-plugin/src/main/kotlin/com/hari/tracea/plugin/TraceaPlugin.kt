@@ -56,10 +56,16 @@ class TraceaPlugin : Plugin<Project> {
 
             project.logger.lifecycle("Tracea: Enabling auto network capture for variant '${variant.name}'")
 
-            // Register OkHttp bytecode transformation
+            val scope = if (extension.instrumentDependencies) {
+                InstrumentationScope.ALL
+            } else {
+                InstrumentationScope.PROJECT
+            }
+
+            // Register OkHttp / URLConnection bytecode transformation
             variant.instrumentation.transformClassesWith(
                 OkHttpClassVisitorFactory::class.java,
-                InstrumentationScope.ALL // Instrument app code + ALL dependency libraries
+                scope
             ) { params ->
                 params.excludePackages.set(extension.excludePackages)
             }

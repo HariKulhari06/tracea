@@ -28,14 +28,28 @@ open class TraceaPluginExtension {
     var instrumentAllVariants: Boolean = false
 
     /**
+     * Whether to instrument third-party external dependencies (JARs and AARs) in addition to project code.
+     *
+     * - `true` (default): Scans both project code and third-party libraries (e.g., Mixpanel, Firebase,
+     *   analytics SDKs) so their internal HTTP calls are automatically captured by Tracea.
+     * - `false`: Scans ONLY project source code (`InstrumentationScope.PROJECT`). Recommended if you
+     *   only need to capture your own app's calls and want maximum build speed during iterative development.
+     */
+    var instrumentDependencies: Boolean = true
+
+    /**
      * Additional package prefixes to exclude from instrumentation.
      * OkHttp clients created in classes matching these packages will NOT
      * be auto-instrumented.
      *
      * Built-in exclusions (always applied):
-     * - com.hari.tracea.okhttp (Tracea SDK internals)
+     * - com.hari.tracea (Tracea SDK internals)
      * - okhttp3, okio (OkHttp internals)
      * - android, androidx (Android framework)
+     * - kotlin, kotlinx (Kotlin stdlib and extensions)
+     * - com.google.android, com.google.common, com.google.protobuf (Google SDKs & utilities)
+     * - org.bouncycastle, io.reactivex, org.jetbrains (utility/crypto/reactive libraries)
+     * - Android resource classes (*.R, *.R$*, *.BuildConfig)
      */
     var excludePackages: List<String> = emptyList()
 }

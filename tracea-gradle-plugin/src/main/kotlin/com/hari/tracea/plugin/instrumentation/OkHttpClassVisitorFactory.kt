@@ -31,16 +31,8 @@ abstract class OkHttpClassVisitorFactory :
         return OkHttpClassVisitor(Opcodes.ASM9, nextClassVisitor)
     }
 
-    override fun isInstrumentable(classData: ClassData): Boolean {
-        val className = classData.className
-
-        // Built-in exclusions: SDK internals, OkHttp, framework
-        // (tracea.demo is intentionally NOT in this list so it gets instrumented!)
-        if (className == "com.hari.tracea.Tracea" || className.startsWith("com.hari.tracea.Tracea$")) {
-            return false
-        }
-
-        val builtInExclusions = listOf(
+    companion object {
+        private val BUILT_IN_EXCLUSION_PREFIXES = arrayOf(
             "com.hari.tracea.okhttp.",
             "com.hari.tracea.urlconnection.",
             "com.hari.tracea.core.",
@@ -56,10 +48,35 @@ abstract class OkHttpClassVisitorFactory :
             "kotlin.",                   // Kotlin stdlib
             "kotlinx.",                  // Kotlin extensions
             "com.google.android.",       // Google Play Services
-            "com.google.firebase.",      // Firebase
+            "com.google.firebase.",      // Firebase SDKs
+            "com.google.common.",        // Guava utilities
+            "com.google.protobuf.",      // Protobuf generated models
+            "com.google.gson.",          // Gson JSON serializer
+            "org.bouncycastle.",         // BouncyCastle crypto
+            "org.jetbrains.",            // JetBrains annotations/tools
+            "org.intellij.",             // IntelliJ annotations
+            "org.apache.commons.",       // Apache Commons
+            "io.reactivex.",             // RxJava
+            "com.airbnb.lottie."         // Lottie UI animations
         )
+    }
 
-        for (prefix in builtInExclusions) {
+    override fun isInstrumentable(classData: ClassData): Boolean {
+        val className = classData.className
+
+        // Fast rejection 1: Tracea root singleton itself
+        if (className == "com.hari.tracea.Tracea" || className.startsWith("com.hari.tracea.Tracea$")) {
+            return false
+        }
+
+        // Fast rejection 2: Android generated resource & BuildConfig classes
+        // (Saves inspecting thousands of R and BuildConfig classes across all dependencies)
+        if (className.endsWith(".R") || className.contains(".R$") || className.endsWith(".BuildConfig")) {
+            return false
+        }
+
+        // Fast rejection 3: Known non-network libraries & SDK internals
+        for (prefix in BUILT_IN_EXCLUSION_PREFIXES) {
             if (className.startsWith(prefix)) return false
         }
 
