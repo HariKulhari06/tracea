@@ -192,7 +192,7 @@ fun NetworkListScreen(
                     }
                 }
                 val collapsedSessions = remember { mutableStateMapOf<String, Boolean>() }
-                val collapsedDomains = remember { mutableStateMapOf<String, Boolean>() }
+                val expandedDomains = remember { mutableStateMapOf<String, Boolean>() }
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -226,7 +226,7 @@ fun NetworkListScreen(
                                     if (!isCollapsed) {
                                         sessionGroup.domainGroups.forEachIndexed { dIndex, domainGroup ->
                                             val domainKey = "$sessionId/${domainGroup.domain}"
-                                            val isDomainExpanded = !(collapsedDomains[domainKey] ?: false)
+                                            val isDomainExpanded = expandedDomains[domainKey] ?: false
 
                                             DomainHeader(
                                                 domain = domainGroup.domain,
@@ -234,7 +234,7 @@ fun NetworkListScreen(
                                                 errorCount = domainGroup.errorCount,
                                                 isExpanded = isDomainExpanded,
                                                 onToggle = {
-                                                    collapsedDomains[domainKey] = isDomainExpanded
+                                                    expandedDomains[domainKey] = !isDomainExpanded
                                                 }
                                             )
 
