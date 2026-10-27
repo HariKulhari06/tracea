@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.github.HariKulhari06"
-version = "1.7.0-alpha01"
+version = "1.7.0-alpha02"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
