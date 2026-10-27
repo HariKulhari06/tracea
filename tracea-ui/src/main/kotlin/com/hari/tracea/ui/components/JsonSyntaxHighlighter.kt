@@ -1,12 +1,14 @@
 package com.hari.tracea.ui.components
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.graphics.Color
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import org.json.JSONArray
+import org.json.JSONObject
 
 object JsonSyntaxHighlighter {
 
@@ -17,31 +19,86 @@ object JsonSyntaxHighlighter {
     private val colorNull = Color(0xFFCE9178)      // Terracotta
     private val colorDelimiter = Color(0xFFE0E0E0) // OnBackground
 
-    private val jsonFormatter = Json { prettyPrint = true; ignoreUnknownKeys = true }
-    private val highlightCache = android.util.LruCache<String, AnnotatedString>(20)
+    private val lenientJson = Json {
+        prettyPrint = true
+        isLenient = true
+        ignoreUnknownKeys = true
+    }
 
+    private val highlightCache = android.util.LruCache<String, AnnotatedString>(30)
+
+    /**
+     * Checks if the given string is valid, formattable JSON (object or array).
+     */
+    fun isValidJson(content: String?): Boolean {
+        if (content.isNullOrBlank()) return false
+        val trimmed = content.trim()
+        if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return false
+
+        return try {
+            if (trimmed.startsWith("{")) {
+                JSONObject(trimmed)
+            } else {
+                JSONArray(trimmed)
+            }
+            true
+        } catch (_: Exception) {
+            try {
+                lenientJson.parseToJsonElement(trimmed)
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
+
+    /**
+     * Formats a raw JSON string into pretty-printed 2-space indented JSON.
+     * Returns the formatted string if valid, or the original raw string if formatting fails.
+     */
+    fun prettyPrint(rawJson: String): String {
+        if (rawJson.length > 100_000) return rawJson
+        val trimmed = rawJson.trim()
+        if (trimmed.isEmpty()) return rawJson
+
+        return try {
+            if (trimmed.startsWith("{")) {
+                JSONObject(trimmed).toString(2)
+            } else if (trimmed.startsWith("[")) {
+                JSONArray(trimmed).toString(2)
+            } else {
+                val element = lenientJson.parseToJsonElement(trimmed)
+                lenientJson.encodeToString(JsonElement.serializer(), element)
+            }
+        } catch (_: Exception) {
+            try {
+                val element = lenientJson.parseToJsonElement(trimmed)
+                lenientJson.encodeToString(JsonElement.serializer(), element)
+            } catch (_: Exception) {
+                rawJson
+            }
+        }
+    }
+
+    /**
+     * Pretty-prints and applies syntax highlighting to raw JSON.
+     */
     fun formatAndHighlight(rawJson: String): AnnotatedString {
-        if (rawJson.length > 100000) {
+        if (rawJson.length > 100_000) {
             return buildAnnotatedString {
                 withStyle(SpanStyle(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)) {
                     append(rawJson)
                 }
             }
         }
-        
+
         highlightCache.get(rawJson)?.let { return it }
 
-        val pretty = try {
-            val element = jsonFormatter.parseToJsonElement(rawJson)
-            jsonFormatter.encodeToString(JsonElement.serializer(), element)
-        } catch (e: Exception) {
-            rawJson
-        }
+        val pretty = prettyPrint(rawJson)
 
         val result = buildAnnotatedString {
             var i = 0
             val length = pretty.length
-            var inString = false
             var isKey = false
 
             while (i < length) {

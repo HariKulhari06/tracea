@@ -49,6 +49,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.hari.tracea.ui.components.DomainHeader
 import com.hari.tracea.ui.components.EmptyState
 import com.hari.tracea.ui.components.SearchBar
 import com.hari.tracea.ui.components.SessionHeader
@@ -178,16 +179,29 @@ fun NetworkListScreen(
                     subtitle = if (searchQuery.isNotEmpty()) "No requests match the selected filters or search query." else "Network requests captured by Tracea will appear here automatically."
                 )
             } else {
-                val grouped = remember(events) { events.groupBy { it.sessionId } }
+                val sessionGroups = remember(events) {
+                    events.groupBy { it.sessionId }.map { (sessionId, sessionEvents) ->
+                        val sessionName = sessionEvents.firstOrNull()?.sessionName ?: "Unknown Session"
+                        val domainGroups = groupEventsByDomain(sessionEvents)
+                        SessionGroup(
+                            sessionId = sessionId,
+                            sessionName = sessionName,
+                            events = sessionEvents,
+                            domainGroups = domainGroups
+                        )
+                    }
+                }
                 val collapsedSessions = remember { mutableStateMapOf<String, Boolean>() }
+                val collapsedDomains = remember { mutableStateMapOf<String, Boolean>() }
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    grouped.forEach { (sessionId, sessionEvents) ->
-                        val sessionName = sessionEvents.firstOrNull()?.sessionName ?: "Unknown Session"
+                    sessionGroups.forEach { sessionGroup ->
+                        val sessionId = sessionGroup.sessionId
+                        val sessionName = sessionGroup.sessionName
                         val isCollapsed = collapsedSessions[sessionId] ?: false
 
                         item(key = sessionId) {
@@ -202,7 +216,7 @@ fun NetworkListScreen(
                                 Column {
                                     SessionHeader(
                                         name = sessionName,
-                                        requestCount = sessionEvents.size,
+                                        requestCount = sessionGroup.events.size,
                                         isCollapsed = isCollapsed,
                                         onToggle = { collapsedSessions[sessionId] = !isCollapsed },
                                         onShareClick = { viewModel.exportSessionHar(context, sessionId, sessionName) },
@@ -210,12 +224,36 @@ fun NetworkListScreen(
                                     )
 
                                     if (!isCollapsed) {
-                                        sessionEvents.forEachIndexed { index, event ->
-                                            RequestRow(
-                                                event = event,
-                                                onClick = { onEventClick(event.id) }
+                                        sessionGroup.domainGroups.forEachIndexed { dIndex, domainGroup ->
+                                            val domainKey = "$sessionId/${domainGroup.domain}"
+                                            val isDomainExpanded = !(collapsedDomains[domainKey] ?: false)
+
+                                            DomainHeader(
+                                                domain = domainGroup.domain,
+                                                requestCount = domainGroup.requestCount,
+                                                errorCount = domainGroup.errorCount,
+                                                isExpanded = isDomainExpanded,
+                                                onToggle = {
+                                                    collapsedDomains[domainKey] = isDomainExpanded
+                                                }
                                             )
-                                            if (index < sessionEvents.size - 1) {
+
+                                            if (isDomainExpanded) {
+                                                domainGroup.events.forEachIndexed { rIndex, event ->
+                                                    RequestRow(
+                                                        event = event,
+                                                        onClick = { onEventClick(event.id) }
+                                                    )
+                                                    if (rIndex < domainGroup.events.size - 1) {
+                                                        HorizontalDivider(
+                                                            color = colors.divider.copy(alpha = 0.4f),
+                                                            thickness = 0.5.dp
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            if (dIndex < sessionGroup.domainGroups.size - 1) {
                                                 HorizontalDivider(
                                                     color = colors.divider.copy(alpha = 0.6f),
                                                     thickness = 0.5.dp

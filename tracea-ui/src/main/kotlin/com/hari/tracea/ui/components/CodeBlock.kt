@@ -51,6 +51,7 @@ fun CodeBlock(
     modifier: Modifier = Modifier,
     title: String? = null,
     showCopyButton: Boolean = true,
+    annotatedContent: AnnotatedString? = null,
     onCopy: (() -> Unit)? = null
 ) {
     val colors = LocalDebuggerColors.current
@@ -176,18 +177,33 @@ fun CodeBlock(
         val textToDisplay = if (displayContent.isEmpty()) "(empty)" else displayContent
         val textColor = if (displayContent.isEmpty()) colors.onSurfaceVariant else colors.onBackground
 
+        val useAnnotated = annotatedContent != null && !isTruncated && displayContent.isNotEmpty()
+
         SelectionContainer {
             if (isWrapped) {
-                Text(
-                    text = textToDisplay,
-                    color = textColor,
-                    fontSize = 13.sp,
-                    fontFamily = FontFamily.Monospace,
-                    lineHeight = 18.sp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp)
-                )
+                if (useAnnotated) {
+                    Text(
+                        text = annotatedContent!!,
+                        color = colors.onBackground,
+                        fontSize = 13.sp,
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = 18.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    )
+                } else {
+                    Text(
+                        text = textToDisplay,
+                        color = textColor,
+                        fontSize = 13.sp,
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = 18.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    )
+                }
             } else {
                 Box(
                     modifier = Modifier
@@ -195,14 +211,25 @@ fun CodeBlock(
                         .horizontalScroll(rememberScrollState())
                         .padding(12.dp)
                 ) {
-                    Text(
-                        text = textToDisplay,
-                        color = textColor,
-                        fontSize = 13.sp,
-                        fontFamily = FontFamily.Monospace,
-                        lineHeight = 18.sp,
-                        softWrap = false
-                    )
+                    if (useAnnotated) {
+                        Text(
+                            text = annotatedContent!!,
+                            color = colors.onBackground,
+                            fontSize = 13.sp,
+                            fontFamily = FontFamily.Monospace,
+                            lineHeight = 18.sp,
+                            softWrap = false
+                        )
+                    } else {
+                        Text(
+                            text = textToDisplay,
+                            color = textColor,
+                            fontSize = 13.sp,
+                            fontFamily = FontFamily.Monospace,
+                            lineHeight = 18.sp,
+                            softWrap = false
+                        )
+                    }
                 }
             }
         }

@@ -108,3 +108,37 @@ class NetworkListViewModel : ViewModel() {
         }
     }
 }
+
+data class DomainGroup(
+    val domain: String,
+    val events: List<NetworkEvent>
+) {
+    val requestCount: Int get() = events.size
+    val errorCount: Int get() = events.count { (it.statusCode ?: 0) >= 400 || it.error != null }
+}
+
+data class SessionGroup(
+    val sessionId: String,
+    val sessionName: String,
+    val events: List<NetworkEvent>,
+    val domainGroups: List<DomainGroup>
+)
+
+fun groupEventsByDomain(events: List<NetworkEvent>): List<DomainGroup> {
+    val domainDict = events.groupBy { event ->
+        val h = event.host?.trim()
+        if (!h.isNullOrEmpty()) {
+            h
+        } else {
+            try {
+                java.net.URI(event.url).host?.takeIf { it.isNotBlank() } ?: "Unknown Host"
+            } catch (_: Exception) {
+                "Unknown Host"
+            }
+        }
+    }
+    return domainDict.map { (domain, evts) ->
+        DomainGroup(domain = domain, events = evts)
+    }.sortedBy { it.domain.lowercase() }
+}
+
