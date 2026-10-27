@@ -10,5 +10,5 @@ plugins {
 
 subprojects {
     group = "com.github.HariKulhari06"
-    version = "1.7.0-alpha02"
+    version = "1.7.0-alpha03"
 }
