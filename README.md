@@ -119,14 +119,14 @@ dependencyResolutionManagement {
 
 ```kotlin
 plugins {
-    id("com.hari.tracea") version "1.7.0-alpha04" apply false
+    id("com.hari.tracea") version "1.7.0-alpha05" apply false
 }
 ```
 
 *(Or via Version Catalog `libs.versions.toml`:)*
 ```toml
 [versions]
-tracea = "1.7.0-alpha04"
+tracea = "1.7.0-alpha05"
 
 [plugins]
 tracea = { id = "com.hari.tracea", version.ref = "tracea" }
@@ -142,10 +142,10 @@ plugins {
 
 dependencies {
     // Debugger in debug builds
-    debugImplementation("com.github.HariKulhari06.tracea:tracea:1.7.0-alpha04")
+    debugImplementation("com.github.HariKulhari06.tracea:tracea:1.7.0-alpha05")
 
     // Zero-overhead stub in release builds (12 KB, 0 dependencies)
-    releaseImplementation("com.github.HariKulhari06.tracea:tracea-noop:1.7.0-alpha04")
+    releaseImplementation("com.github.HariKulhari06.tracea:tracea-noop:1.7.0-alpha05")
 }
 ```
 
@@ -211,8 +211,8 @@ In `app/build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    debugImplementation("com.github.HariKulhari06.tracea:tracea:1.7.0-alpha04")
-    releaseImplementation("com.github.HariKulhari06.tracea:tracea-noop:1.7.0-alpha04")
+    debugImplementation("com.github.HariKulhari06.tracea:tracea:1.7.0-alpha05")
+    releaseImplementation("com.github.HariKulhari06.tracea:tracea-noop:1.7.0-alpha05")
 }
 ```
 
