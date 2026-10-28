@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,12 +37,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -76,6 +79,21 @@ fun NetworkListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val activeFilter by viewModel.activeFilter.collectAsState()
     val activeMethodFilter by viewModel.activeMethodFilter.collectAsState()
+    val expandedDomains by viewModel.expandedDomains.collectAsState()
+    val collapsedSessions by viewModel.collapsedSessions.collectAsState()
+
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = viewModel.scrollIndex,
+        initialFirstVisibleItemScrollOffset = viewModel.scrollOffset
+    )
+
+    LaunchedEffect(listState) {
+        snapshotFlow { Pair(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
+            .collect { (index, offset) ->
+                viewModel.scrollIndex = index
+                viewModel.scrollOffset = offset
+            }
+    }
 
     var deleteConfirmationSession by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
@@ -191,10 +209,8 @@ fun NetworkListScreen(
                         )
                     }
                 }
-                val collapsedSessions = remember { mutableStateMapOf<String, Boolean>() }
-                val expandedDomains = remember { mutableStateMapOf<String, Boolean>() }
-
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -202,7 +218,7 @@ fun NetworkListScreen(
                     sessionGroups.forEach { sessionGroup ->
                         val sessionId = sessionGroup.sessionId
                         val sessionName = sessionGroup.sessionName
-                        val isCollapsed = collapsedSessions[sessionId] ?: false
+                        val isCollapsed = collapsedSessions.contains(sessionId)
 
                         item(key = sessionId) {
                             Card(
@@ -218,7 +234,7 @@ fun NetworkListScreen(
                                         name = sessionName,
                                         requestCount = sessionGroup.events.size,
                                         isCollapsed = isCollapsed,
-                                        onToggle = { collapsedSessions[sessionId] = !isCollapsed },
+                                        onToggle = { viewModel.toggleSessionCollapse(sessionId) },
                                         onShareClick = { viewModel.exportSessionHar(context, sessionId, sessionName) },
                                         onDeleteClick = { deleteConfirmationSession = Pair(sessionId, sessionName) }
                                     )
@@ -226,7 +242,7 @@ fun NetworkListScreen(
                                     if (!isCollapsed) {
                                         sessionGroup.domainGroups.forEachIndexed { dIndex, domainGroup ->
                                             val domainKey = "$sessionId/${domainGroup.domain}"
-                                            val isDomainExpanded = expandedDomains[domainKey] ?: false
+                                            val isDomainExpanded = searchQuery.isNotBlank() || expandedDomains.contains(domainKey)
 
                                             DomainHeader(
                                                 domain = domainGroup.domain,
@@ -234,7 +250,7 @@ fun NetworkListScreen(
                                                 errorCount = domainGroup.errorCount,
                                                 isExpanded = isDomainExpanded,
                                                 onToggle = {
-                                                    expandedDomains[domainKey] = !isDomainExpanded
+                                                    viewModel.toggleDomainExpansion(sessionId, domainGroup.domain)
                                                 }
                                             )
 

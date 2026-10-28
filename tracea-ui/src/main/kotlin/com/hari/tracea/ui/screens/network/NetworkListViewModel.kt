@@ -28,6 +28,37 @@ class NetworkListViewModel : ViewModel() {
     private val _isSearchVisible = MutableStateFlow(true)
     val isSearchVisible: StateFlow<Boolean> = _isSearchVisible
 
+    // Persistent domain expansion: keys are "$sessionId/$domain". Empty by default => all collapsed.
+    private val _expandedDomains = MutableStateFlow<Set<String>>(emptySet())
+    val expandedDomains: StateFlow<Set<String>> = _expandedDomains
+
+    // Persistent session collapse: set of collapsed session IDs. Empty by default => all sessions open.
+    private val _collapsedSessions = MutableStateFlow<Set<String>>(emptySet())
+    val collapsedSessions: StateFlow<Set<String>> = _collapsedSessions
+
+    // Scroll state preservation across detail navigation
+    var scrollIndex: Int = 0
+    var scrollOffset: Int = 0
+
+    fun toggleDomainExpansion(sessionId: String, domain: String) {
+        val key = "$sessionId/$domain"
+        val current = _expandedDomains.value
+        _expandedDomains.value = if (current.contains(key)) {
+            current - key
+        } else {
+            current + key
+        }
+    }
+
+    fun toggleSessionCollapse(sessionId: String) {
+        val current = _collapsedSessions.value
+        _collapsedSessions.value = if (current.contains(sessionId)) {
+            current - sessionId
+        } else {
+            current + sessionId
+        }
+    }
+
     val events: StateFlow<List<NetworkEvent>> = combine(
         store?.getAll() ?: MutableStateFlow(emptyList()),
         _searchQuery,
