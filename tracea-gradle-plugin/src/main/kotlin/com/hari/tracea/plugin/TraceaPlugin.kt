@@ -45,9 +45,23 @@ class TraceaPlugin : Plugin<Project> {
                 return@onVariants
             }
 
-            // Only instrument debug variants by default, unless overridden
-            val shouldInstrument = extension.instrumentAllVariants ||
-                variant.name.contains("debug", ignoreCase = true)
+            val variantName = variant.name.lowercase()
+
+            // Check explicit exclusions first
+            val isExcluded = extension.excludeVariants.any {
+                variantName.contains(it.lowercase())
+            }
+            if (isExcluded) {
+                project.logger.info("Tracea skipping excluded variant: ${variant.name}")
+                return@onVariants
+            }
+
+            // Determine if variant should be instrumented
+            val shouldInstrument = if (extension.includeVariants.isNotEmpty()) {
+                extension.includeVariants.any { variantName.contains(it.lowercase()) }
+            } else {
+                extension.instrumentAllVariants || variantName.contains("debug")
+            }
 
             if (!shouldInstrument) {
                 project.logger.info("Tracea skipping instrumentation for variant: ${variant.name}")

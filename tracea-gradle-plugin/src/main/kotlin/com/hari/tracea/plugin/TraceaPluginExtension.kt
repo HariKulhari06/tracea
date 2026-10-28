@@ -23,9 +23,22 @@ open class TraceaPluginExtension {
     /**
      * By default, only debug build variants are instrumented.
      * Set to true to instrument all variants (including release).
-     * This is useful for production monitoring SDKs.
+     * This is useful for production monitoring SDKs or internal test builds.
      */
     var instrumentAllVariants: Boolean = false
+
+    /**
+     * Specific variant names or patterns (e.g. `listOf("qa", "internal", "debug")`) to instrument.
+     * If specified, only variants matching any of these substrings (case-insensitive) will be instrumented.
+     * When empty (default), falls back to [instrumentAllVariants] or variants containing "debug".
+     */
+    var includeVariants: List<String> = emptyList()
+
+    /**
+     * Specific variant names or patterns (e.g. `listOf("playstore", "prodRelease")`) to exclude from instrumentation.
+     * Any variant matching any of these substrings (case-insensitive) will NEVER be instrumented.
+     */
+    var excludeVariants: List<String> = emptyList()
 
     /**
      * Whether to instrument third-party external dependencies (JARs and AARs) in addition to project code.

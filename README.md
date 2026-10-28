@@ -178,6 +178,15 @@ tracea {
     // Enable or disable bytecode instrumentation (default: true)
     enabled = true
 
+    // Target specific build variants (e.g. QA, internal release, debug)
+    // includeVariants = listOf("debug", "qa", "internal")
+
+    // Or exclude specific variants from instrumentation (e.g. Play Store production release)
+    // excludeVariants = listOf("playstore", "prodRelease")
+
+    // Or instrument all variants unconditionally (default: false)
+    // instrumentAllVariants = false
+
     // Whether to instrument 3rd-party dependencies (default: true).
     // Set to true to automatically capture network calls from 3rd-party SDKs (Mixpanel, etc.).
     // Set to false to only scan project code for maximum incremental build speed.
