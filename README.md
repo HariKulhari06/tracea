@@ -11,11 +11,15 @@
   <a href="https://kotlinlang.org"><img src="https://img.shields.io/badge/Kotlin-2.1.20-purple.svg" alt="Kotlin"/></a>
   <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/UI-Jetpack%20Compose-blue.svg" alt="Jetpack Compose"/></a>
   <a href="https://square.github.io/okhttp/"><img src="https://img.shields.io/badge/OkHttp-5.x-orange.svg" alt="OkHttp"/></a>
+  <a href="https://github.com/HariKulhari06/tracea-ios"><img src="https://img.shields.io/badge/iOS%20Counterpart-Tracea%20iOS-orange.svg" alt="Tracea iOS"/></a>
 </p>
 
 <p align="center">
   <b>Inspect, mock, and debug Android network traffic directly inside your app — no proxy setup, no SSL certificates, no Charles/Proxyman required.</b>
 </p>
+
+> [!TIP]
+> 🍏 **Looking for iOS?** Check out [**Tracea iOS**](https://github.com/HariKulhari06/tracea-ios) — our Swift & SwiftUI counterpart with transparent `URLSession` interception, Charles-style domain grouping, timing waterfall, and API mocking. Both libraries share an identical developer theme and unified feature set.
 
 ---
 
@@ -58,6 +62,8 @@ Existing Android network debugging tools each have tradeoffs. Tracea is built to
 ## ✨ Features
 
 - ⚡ **Automatic Network Capture (Gradle Plugin)** — Transparently instruments OkHttp (`OkHttpClient.Builder.build()`) and `HttpURLConnection` / `HttpsURLConnection` at the bytecode level across your entire app and all 3rd-party SDKs (Mixpanel, Adobe Analytics, Amplitude, etc.). Zero manual interceptors required.
+- 🌐 **Domain-Based Request Grouping** — Charles/Proxyman-style domain grouping. Domain sections are collapsed by default, persist their expansion and scroll position back and forth across detail screens, and auto-expand during search.
+- 🎯 **Build Variant Filtering** — Selectively instrument internal QA, staging, or debug release builds (`includeVariants`) while completely skipping production Play Store builds (`excludeVariants`).
 - 🔍 **Real-time HTTP/HTTPS Traffic Inspection** — Monitor all OkHttp & Retrofit network calls with color-coded status badges, request/response headers, and formatted body payloads.
 - 🎭 **Dynamic API Response Mocking** — Intercept requests by URL path and HTTP method. Override status codes (401, 500, etc.), inject custom JSON bodies, and simulate network latency — all without touching backend code.
 - 📉 **DevTools-Style Timing Waterfall** — Visualize per-request latency with DNS lookup, TCP connect, TLS handshake, TTFB, and download breakdowns.
@@ -119,14 +125,14 @@ dependencyResolutionManagement {
 
 ```kotlin
 plugins {
-    id("com.hari.tracea") version "1.7.0-alpha05" apply false
+    id("com.hari.tracea") version "1.7.0" apply false
 }
 ```
 
 *(Or via Version Catalog `libs.versions.toml`:)*
 ```toml
 [versions]
-tracea = "1.7.0-alpha05"
+tracea = "1.7.0"
 
 [plugins]
 tracea = { id = "com.hari.tracea", version.ref = "tracea" }
@@ -142,10 +148,10 @@ plugins {
 
 dependencies {
     // Debugger in debug builds
-    debugImplementation("com.github.HariKulhari06.tracea:tracea:1.7.0-alpha05")
+    debugImplementation("com.github.HariKulhari06.tracea:tracea:1.7.0")
 
     // Zero-overhead stub in release builds (12 KB, 0 dependencies)
-    releaseImplementation("com.github.HariKulhari06.tracea:tracea-noop:1.7.0-alpha05")
+    releaseImplementation("com.github.HariKulhari06.tracea:tracea-noop:1.7.0")
 }
 ```
 
@@ -211,8 +217,8 @@ In `app/build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    debugImplementation("com.github.HariKulhari06.tracea:tracea:1.7.0-alpha05")
-    releaseImplementation("com.github.HariKulhari06.tracea:tracea-noop:1.7.0-alpha05")
+    debugImplementation("com.github.HariKulhari06.tracea:tracea:1.7.0")
+    releaseImplementation("com.github.HariKulhari06.tracea:tracea-noop:1.7.0")
 }
 ```
 
@@ -389,6 +395,25 @@ Tracea is built with a clean, modular architecture:
 | **Method Count** | ~2,000 | **~15** |
 | **Runtime Overhead** | Negligible | **Zero** |
 | **Security Risk** | Debug-only (no production exposure) | **Zero** |
+
+---
+
+## 🤝 Cross-Platform Ecosystem
+
+Tracea is designed as a unified network debugging platform across both major mobile ecosystems. Use both to provide consistent developer tooling across your mobile teams:
+
+| Feature | Tracea Android 🤖 | Tracea iOS 🍏 |
+| :--- | :---: | :---: |
+| **UI Framework** | Jetpack Compose | SwiftUI |
+| **Automatic Capture** | AGP 8.0+ ASM Bytecode Plugin | `URLProtocol` & Session Swizzling |
+| **Language** | Kotlin 2.x | Swift 5.9+ |
+| **Third-Party SDK Capture** | All SDKs (OkHttp & HttpURLConnection) | URLSession-based SDKs |
+| **Domain-Based Grouping** | ✅ (Collapsible, search auto-expansion) | ✅ (Charles-style tree) |
+| **API Mocking** | Built-in Mock Engine | Built-in Mock Engine |
+| **DevTools Timing Waterfall** | ✅ (DNS, TCP, TLS, TTFB, Download) | ✅ (`URLSessionTaskMetrics`) |
+| **Browser Web Dashboard** | Embedded Ktor Web Server | Roadmapped |
+| **Zero-Overhead Release Stub** | `tracea-noop` (12 KB stub) | `TraceaNoop` (0 KB stubs) |
+| **Repository** | [tracea](https://github.com/HariKulhari06/tracea) | [tracea-ios](https://github.com/HariKulhari06/tracea-ios) |
 
 ---
 
