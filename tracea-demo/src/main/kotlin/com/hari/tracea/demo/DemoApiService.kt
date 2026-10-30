@@ -11,8 +11,10 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.concurrent.TimeUnit
 
 class DemoApiService {
+    // No manual interceptor needed!
+    // The Tracea Gradle plugin automatically injects TraceaInterceptor
+    // into all OkHttpClient.Builder.build() calls at compile time.
     private val client = OkHttpClient.Builder()
-        .addInterceptor(Tracea.okHttpInterceptor())
         .connectTimeout(5, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
         .build()
@@ -144,6 +146,61 @@ class DemoApiService {
             .url("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png")
             .build()
         return executeRequest(request)
+    }
+
+    /**
+     * Standard HttpURLConnection request — NO OkHttp, NO manual interceptor!
+     * This simulates how third-party SDKs like Adobe Analytics make network calls.
+     * Tracea's Gradle plugin automatically instruments URL.openConnection() at build time.
+     */
+    suspend fun testHttpUrlConnection(): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val url = java.net.URL("https://jsonplaceholder.typicode.com/todos/1")
+            val connection = url.openConnection() as java.net.HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 5000
+            connection.readTimeout = 5000
+            connection.setRequestProperty("Accept", "application/json")
+            connection.setRequestProperty("User-Agent", "Tracea-HttpURLConnection-Demo/1.0")
+
+            val responseCode = connection.responseCode
+            val responseText = if (responseCode in 200..299) {
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } else {
+                connection.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
+            }
+            connection.disconnect()
+            if (responseCode in 200..299) {
+                Result.success(responseText)
+            } else {
+                Result.failure(Exception("HTTP error $responseCode"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Third-party Analytics SDK test using Mixpanel.
+     * We initialize Mixpanel with a dummy token and fire an event + flush.
+     * ZERO Tracea configuration, ZERO interceptors attached.
+     * Mixpanel internally creates an HttpURLConnection to api.mixpanel.com,
+     * which Tracea automatically intercepts and displays in the Debugger UI!
+     */
+    fun trackMixpanelEvent(context: android.content.Context) {
+        val mixpanel = com.mixpanel.android.mpmetrics.MixpanelAPI.getInstance(
+            context,
+            "DUMMY_TOKEN_TRACEA_TEST_12345",
+            true
+        )
+        val props = org.json.JSONObject().apply {
+            put("item_name", "Wireless Mechanical Keyboard")
+            put("price", 149.99)
+            put("currency", "USD")
+            put("test_source", "3rd_party_analytics_sdk")
+        }
+        mixpanel.track("Purchase_Completed", props)
+        mixpanel.flush()
     }
 
     suspend fun manualCapture() {

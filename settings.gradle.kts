@@ -1,4 +1,6 @@
 pluginManagement {
+    // Include the Tracea Gradle plugin from the composite build
+    includeBuild("tracea-gradle-plugin")
     repositories {
         google()
         mavenCentral()
@@ -23,4 +25,5 @@ include(":tracea-web")
 include(":tracea-ui")
 include(":tracea")
 include(":tracea-noop")
+include(":tracea-urlconnection")
 include(":tracea-demo")

@@ -97,9 +97,7 @@ fun OverviewTab(
         if (resBody != null) {
             when (resBody) {
                 is BodyData.Text -> {
-                    val isJson = event.responseContentType?.contains("json", ignoreCase = true) == true ||
-                            resBody.content.trim().startsWith("{") ||
-                            resBody.content.trim().startsWith("[")
+                    val isJson = JsonSyntaxHighlighter.isValidJson(resBody.content)
 
                     if (isJson) {
                         Row(
@@ -120,20 +118,27 @@ fun OverviewTab(
                             )
                         }
 
-                        val bodyText = if (responseBodyMode == BodyDisplayMode.PRETTY) {
-                            JsonSyntaxHighlighter.formatAndHighlight(resBody.content).text
+                        val (bodyText, annotated) = if (responseBodyMode == BodyDisplayMode.PRETTY) {
+                            val highlighted = JsonSyntaxHighlighter.formatAndHighlight(resBody.content)
+                            highlighted.text to highlighted
                         } else {
-                            resBody.content
+                            resBody.content to null
                         }
                         CodeBlock(
                             content = bodyText,
-                            title = "JSON • ${SizeFormatter.format(resBody.size)}",
+                            annotatedContent = annotated,
+                            title = if (responseBodyMode == BodyDisplayMode.PRETTY) "JSON • ${SizeFormatter.format(resBody.size)}" else "JSON (RAW) • ${SizeFormatter.format(resBody.size)}",
                             onCopy = { clipboardManager.setText(AnnotatedString(resBody.content)) }
                         )
                     } else {
+                        val displayTitle = if (event.responseContentType?.contains("json", ignoreCase = true) == true) {
+                            "TEXT • ${SizeFormatter.format(resBody.size)}"
+                        } else {
+                            "${resBody.contentType.name.uppercase()} • ${SizeFormatter.format(resBody.size)}"
+                        }
                         CodeBlock(
                             content = resBody.content,
-                            title = "${resBody.contentType.name.uppercase()} • ${SizeFormatter.format(resBody.size)}",
+                            title = displayTitle,
                             onCopy = { clipboardManager.setText(AnnotatedString(resBody.content)) }
                         )
                     }

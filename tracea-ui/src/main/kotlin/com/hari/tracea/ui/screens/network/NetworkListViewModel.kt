@@ -28,6 +28,37 @@ class NetworkListViewModel : ViewModel() {
     private val _isSearchVisible = MutableStateFlow(true)
     val isSearchVisible: StateFlow<Boolean> = _isSearchVisible
 
+    // Persistent domain expansion: keys are "$sessionId/$domain". Empty by default => all collapsed.
+    private val _expandedDomains = MutableStateFlow<Set<String>>(emptySet())
+    val expandedDomains: StateFlow<Set<String>> = _expandedDomains
+
+    // Persistent session collapse: set of collapsed session IDs. Empty by default => all sessions open.
+    private val _collapsedSessions = MutableStateFlow<Set<String>>(emptySet())
+    val collapsedSessions: StateFlow<Set<String>> = _collapsedSessions
+
+    // Scroll state preservation across detail navigation
+    var scrollIndex: Int = 0
+    var scrollOffset: Int = 0
+
+    fun toggleDomainExpansion(sessionId: String, domain: String) {
+        val key = "$sessionId/$domain"
+        val current = _expandedDomains.value
+        _expandedDomains.value = if (current.contains(key)) {
+            current - key
+        } else {
+            current + key
+        }
+    }
+
+    fun toggleSessionCollapse(sessionId: String) {
+        val current = _collapsedSessions.value
+        _collapsedSessions.value = if (current.contains(sessionId)) {
+            current - sessionId
+        } else {
+            current + sessionId
+        }
+    }
+
     val events: StateFlow<List<NetworkEvent>> = combine(
         store?.getAll() ?: MutableStateFlow(emptyList()),
         _searchQuery,
@@ -108,3 +139,37 @@ class NetworkListViewModel : ViewModel() {
         }
     }
 }
+
+data class DomainGroup(
+    val domain: String,
+    val events: List<NetworkEvent>
+) {
+    val requestCount: Int get() = events.size
+    val errorCount: Int get() = events.count { (it.statusCode ?: 0) >= 400 || it.error != null }
+}
+
+data class SessionGroup(
+    val sessionId: String,
+    val sessionName: String,
+    val events: List<NetworkEvent>,
+    val domainGroups: List<DomainGroup>
+)
+
+fun groupEventsByDomain(events: List<NetworkEvent>): List<DomainGroup> {
+    val domainDict = events.groupBy { event ->
+        val h = event.host?.trim()
+        if (!h.isNullOrEmpty()) {
+            h
+        } else {
+            try {
+                java.net.URI(event.url).host?.takeIf { it.isNotBlank() } ?: "Unknown Host"
+            } catch (_: Exception) {
+                "Unknown Host"
+            }
+        }
+    }
+    return domainDict.map { (domain, evts) ->
+        DomainGroup(domain = domain, events = evts)
+    }.sortedBy { it.domain.lowercase() }
+}
+

@@ -1,16 +1,25 @@
 package com.hari.tracea.ui.screens.detail.tabs
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.hari.tracea.core.model.BodyData
 import com.hari.tracea.core.model.NetworkEvent
 import com.hari.tracea.core.util.SizeFormatter
@@ -22,14 +31,16 @@ import com.hari.tracea.ui.components.QueryParamsSection
 import com.hari.tracea.ui.components.SectionHeader
 import com.hari.tracea.ui.components.UrlCard
 import com.hari.tracea.ui.screens.detail.BodyDisplayMode
+import com.hari.tracea.ui.theme.LocalDebuggerColors
 
 @Composable
 fun RequestTab(
     event: NetworkEvent,
     requestBodyMode: BodyDisplayMode,
-    @Suppress("UNUSED_PARAMETER") onRequestBodyModeChange: (BodyDisplayMode) -> Unit,
+    onRequestBodyModeChange: (BodyDisplayMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = LocalDebuggerColors.current
     val clipboardManager = LocalClipboardManager.current
     val scrollState = rememberScrollState()
 
@@ -77,20 +88,69 @@ fun RequestTab(
             SectionHeader(title = "Request Body")
             when (body) {
                 is BodyData.Text -> {
-                    val isJson = event.requestContentType?.contains("json", ignoreCase = true) == true ||
-                            body.content.trim().startsWith("{") ||
-                            body.content.trim().startsWith("[")
+                    val isJson = JsonSyntaxHighlighter.isValidJson(body.content)
 
-                    val formatted = if (isJson && requestBodyMode == BodyDisplayMode.PRETTY) {
-                        JsonSyntaxHighlighter.formatAndHighlight(body.content).text
+                    if (isJson) {
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(colors.surfaceVariant)
+                                .padding(2.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(if (requestBodyMode == BodyDisplayMode.PRETTY) colors.surface else colors.surfaceVariant)
+                                    .clickable { onRequestBodyModeChange(BodyDisplayMode.PRETTY) }
+                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "Pretty",
+                                    color = if (requestBodyMode == BodyDisplayMode.PRETTY) colors.onSurface else colors.onSurfaceVariant,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (requestBodyMode == BodyDisplayMode.PRETTY) FontWeight.Bold else FontWeight.Medium
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(if (requestBodyMode == BodyDisplayMode.RAW) colors.surface else colors.surfaceVariant)
+                                    .clickable { onRequestBodyModeChange(BodyDisplayMode.RAW) }
+                                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "Raw",
+                                    color = if (requestBodyMode == BodyDisplayMode.RAW) colors.onSurface else colors.onSurfaceVariant,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (requestBodyMode == BodyDisplayMode.RAW) FontWeight.Bold else FontWeight.Medium
+                                )
+                            }
+                        }
+
+                        val (formattedText, annotated) = if (requestBodyMode == BodyDisplayMode.PRETTY) {
+                            val highlighted = JsonSyntaxHighlighter.formatAndHighlight(body.content)
+                            highlighted.text to highlighted
+                        } else {
+                            body.content to null
+                        }
+                        CodeBlock(
+                            content = formattedText,
+                            annotatedContent = annotated,
+                            title = if (requestBodyMode == BodyDisplayMode.PRETTY) "JSON • ${SizeFormatter.format(body.size)}" else "JSON (RAW) • ${SizeFormatter.format(body.size)}",
+                            onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
+                        )
                     } else {
-                        body.content
+                        val displayTitle = if (event.requestContentType?.contains("json", ignoreCase = true) == true) {
+                            "TEXT • ${SizeFormatter.format(body.size)}"
+                        } else {
+                            "${body.contentType.name.uppercase()} • ${SizeFormatter.format(body.size)}"
+                        }
+                        CodeBlock(
+                            content = body.content,
+                            title = displayTitle,
+                            onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
+                        )
                     }
-                    CodeBlock(
-                        content = formatted,
-                        title = "${body.contentType.name.uppercase()} • ${SizeFormatter.format(body.size)}",
-                        onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
-                    )
                 }
                 is BodyData.Binary -> {
                     KeyValueCard(

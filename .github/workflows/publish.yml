@@ -27,7 +27,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Release AARs & Publish
-        run: ./gradlew publishToMavenLocal assembleRelease
+        run: ./gradlew publishToMavenLocal assembleRelease :tracea-gradle-plugin:publishToMavenLocal :tracea-gradle-plugin:jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -41,7 +41,10 @@ jobs:
             tracea-manual/build/outputs/aar/*.aar
             tracea-storage/build/outputs/aar/*.aar
             tracea-ui/build/outputs/aar/*.aar
+            tracea-urlconnection/build/outputs/aar/*.aar
+            tracea-noop/build/outputs/aar/*.aar
+            tracea-web/build/outputs/aar/*.aar
+            tracea-gradle-plugin/build/libs/*.jar
           draft: false
-          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

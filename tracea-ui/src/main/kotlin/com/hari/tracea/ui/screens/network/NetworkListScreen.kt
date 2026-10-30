@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,12 +37,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -49,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.hari.tracea.ui.components.DomainHeader
 import com.hari.tracea.ui.components.EmptyState
 import com.hari.tracea.ui.components.SearchBar
 import com.hari.tracea.ui.components.SessionHeader
@@ -75,6 +79,21 @@ fun NetworkListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val activeFilter by viewModel.activeFilter.collectAsState()
     val activeMethodFilter by viewModel.activeMethodFilter.collectAsState()
+    val expandedDomains by viewModel.expandedDomains.collectAsState()
+    val collapsedSessions by viewModel.collapsedSessions.collectAsState()
+
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = viewModel.scrollIndex,
+        initialFirstVisibleItemScrollOffset = viewModel.scrollOffset
+    )
+
+    LaunchedEffect(listState) {
+        snapshotFlow { Pair(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
+            .collect { (index, offset) ->
+                viewModel.scrollIndex = index
+                viewModel.scrollOffset = offset
+            }
+    }
 
     var deleteConfirmationSession by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showClearConfirm by remember { mutableStateOf(false) }
@@ -178,17 +197,28 @@ fun NetworkListScreen(
                     subtitle = if (searchQuery.isNotEmpty()) "No requests match the selected filters or search query." else "Network requests captured by Tracea will appear here automatically."
                 )
             } else {
-                val grouped = remember(events) { events.groupBy { it.sessionId } }
-                val collapsedSessions = remember { mutableStateMapOf<String, Boolean>() }
-
+                val sessionGroups = remember(events) {
+                    events.groupBy { it.sessionId }.map { (sessionId, sessionEvents) ->
+                        val sessionName = sessionEvents.firstOrNull()?.sessionName ?: "Unknown Session"
+                        val domainGroups = groupEventsByDomain(sessionEvents)
+                        SessionGroup(
+                            sessionId = sessionId,
+                            sessionName = sessionName,
+                            events = sessionEvents,
+                            domainGroups = domainGroups
+                        )
+                    }
+                }
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    grouped.forEach { (sessionId, sessionEvents) ->
-                        val sessionName = sessionEvents.firstOrNull()?.sessionName ?: "Unknown Session"
-                        val isCollapsed = collapsedSessions[sessionId] ?: false
+                    sessionGroups.forEach { sessionGroup ->
+                        val sessionId = sessionGroup.sessionId
+                        val sessionName = sessionGroup.sessionName
+                        val isCollapsed = collapsedSessions.contains(sessionId)
 
                         item(key = sessionId) {
                             Card(
@@ -202,20 +232,44 @@ fun NetworkListScreen(
                                 Column {
                                     SessionHeader(
                                         name = sessionName,
-                                        requestCount = sessionEvents.size,
+                                        requestCount = sessionGroup.events.size,
                                         isCollapsed = isCollapsed,
-                                        onToggle = { collapsedSessions[sessionId] = !isCollapsed },
+                                        onToggle = { viewModel.toggleSessionCollapse(sessionId) },
                                         onShareClick = { viewModel.exportSessionHar(context, sessionId, sessionName) },
                                         onDeleteClick = { deleteConfirmationSession = Pair(sessionId, sessionName) }
                                     )
 
                                     if (!isCollapsed) {
-                                        sessionEvents.forEachIndexed { index, event ->
-                                            RequestRow(
-                                                event = event,
-                                                onClick = { onEventClick(event.id) }
+                                        sessionGroup.domainGroups.forEachIndexed { dIndex, domainGroup ->
+                                            val domainKey = "$sessionId/${domainGroup.domain}"
+                                            val isDomainExpanded = searchQuery.isNotBlank() || expandedDomains.contains(domainKey)
+
+                                            DomainHeader(
+                                                domain = domainGroup.domain,
+                                                requestCount = domainGroup.requestCount,
+                                                errorCount = domainGroup.errorCount,
+                                                isExpanded = isDomainExpanded,
+                                                onToggle = {
+                                                    viewModel.toggleDomainExpansion(sessionId, domainGroup.domain)
+                                                }
                                             )
-                                            if (index < sessionEvents.size - 1) {
+
+                                            if (isDomainExpanded) {
+                                                domainGroup.events.forEachIndexed { rIndex, event ->
+                                                    RequestRow(
+                                                        event = event,
+                                                        onClick = { onEventClick(event.id) }
+                                                    )
+                                                    if (rIndex < domainGroup.events.size - 1) {
+                                                        HorizontalDivider(
+                                                            color = colors.divider.copy(alpha = 0.4f),
+                                                            thickness = 0.5.dp
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            if (dIndex < sessionGroup.domainGroups.size - 1) {
                                                 HorizontalDivider(
                                                     color = colors.divider.copy(alpha = 0.6f),
                                                     thickness = 0.5.dp

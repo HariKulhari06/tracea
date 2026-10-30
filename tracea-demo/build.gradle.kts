@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.hari.tracea")
 }
 
 android {
@@ -50,4 +51,7 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.coroutines.core)
     implementation(libs.coroutines.android)
+
+    // Third-party Analytics SDK test: auto-capture events without any Tracea config!
+    implementation("com.mixpanel.android:mixpanel-android:7.5.4")
 }

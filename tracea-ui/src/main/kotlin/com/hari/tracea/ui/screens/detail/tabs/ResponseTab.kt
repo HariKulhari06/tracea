@@ -168,9 +168,7 @@ fun ResponseTab(
 
                     when (body) {
                         is BodyData.Text -> {
-                            val isJson = event.responseContentType?.contains("json", ignoreCase = true) == true ||
-                                    body.content.trim().startsWith("{") ||
-                                    body.content.trim().startsWith("[")
+                            val isJson = JsonSyntaxHighlighter.isValidJson(body.content)
 
                             if (isJson) {
                                 Row(
@@ -209,20 +207,27 @@ fun ResponseTab(
                                     }
                                 }
 
-                                val formatted = if (responseBodyMode == BodyDisplayMode.PRETTY) {
-                                    JsonSyntaxHighlighter.formatAndHighlight(body.content).text
+                                val (formattedText, annotated) = if (responseBodyMode == BodyDisplayMode.PRETTY) {
+                                    val highlighted = JsonSyntaxHighlighter.formatAndHighlight(body.content)
+                                    highlighted.text to highlighted
                                 } else {
-                                    body.content
+                                    body.content to null
                                 }
                                 CodeBlock(
-                                    content = formatted,
-                                    title = "JSON • ${SizeFormatter.format(body.size)}",
+                                    content = formattedText,
+                                    annotatedContent = annotated,
+                                    title = if (responseBodyMode == BodyDisplayMode.PRETTY) "JSON • ${SizeFormatter.format(body.size)}" else "JSON (RAW) • ${SizeFormatter.format(body.size)}",
                                     onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
                                 )
                             } else {
+                                val displayTitle = if (event.responseContentType?.contains("json", ignoreCase = true) == true) {
+                                    "TEXT • ${SizeFormatter.format(body.size)}"
+                                } else {
+                                    "${body.contentType.name.uppercase()} • ${SizeFormatter.format(body.size)}"
+                                }
                                 CodeBlock(
                                     content = body.content,
-                                    title = "${body.contentType.name.uppercase()} • ${SizeFormatter.format(body.size)}",
+                                    title = displayTitle,
                                     onCopy = { clipboardManager.setText(AnnotatedString(body.content)) }
                                 )
                             }

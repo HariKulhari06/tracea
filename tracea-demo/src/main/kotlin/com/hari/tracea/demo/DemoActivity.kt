@@ -201,6 +201,18 @@ fun DemoScreen(apiService: DemoApiService) {
                     showToast("🎯 Full Detail Test Emitted (Headers, Query, Bodies, Cookies, Waterfall)")
                 }
             }
+
+            DemoButton("15. 🌐 HttpURLConnection (Adobe/3rd-Party Auto-Capture)") {
+                scope.launch {
+                    val result = apiService.testHttpUrlConnection()
+                    showToast(if (result.isSuccess) "HttpURLConnection Success (Auto-Captured!)" else "HttpURLConnection Failed: ${result.exceptionOrNull()?.message}")
+                }
+            }
+
+            DemoButton("16. 📊 3rd-Party Analytics SDK (Mixpanel Track & Flush)") {
+                apiService.trackMixpanelEvent(context)
+                showToast("Mixpanel Event Triggered & Flushed! (Check Tracea for api.mixpanel.com call)")
+            }
             
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             
